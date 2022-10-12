@@ -1,11 +1,14 @@
 FROM pytorch/pytorch
+WORKDIR /workspace
 
 RUN apt-get update && apt-get install -y \
         git \
         wget \
         htop \
         screen \
-        vim
+        vim \
+
+COPY . /workspace
 
 RUN pip install -r requirements.txt
 
