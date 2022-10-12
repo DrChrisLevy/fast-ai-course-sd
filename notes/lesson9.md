@@ -30,6 +30,7 @@ Drawing on the whiteboard
 - go over and watch again maybe..
 
 # TODO Before Next Lesson
+- set up ENV we can use for git clone on a GPU machine and Docker FIle.
 - watch https://www.youtube.com/watch?v=844LY0vYQhc and work along with the [notebook](https://github.com/fastai/diffusion-nbs/blob/master/Stable%20Diffusion%20Deep%20Dive.ipynb)
 - checkout the [fast ai diffusion-nbs](https://github.com/fastai/diffusion-nbs)
 - learn about this scheduler stuff!
