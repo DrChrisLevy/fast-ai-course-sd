@@ -1,9 +1,4 @@
-huggingface-hub==0.10.1
-transformers==4.23.0
-fastcore==1.5.27
-fastdownload==0.0.7
-git+https://github.com/huggingface/diffusers.git@main#egg=diffusers
-notebook
-matplotlib
-ipywidgets
-scipy
+fastai
+diffusers
+transformers
+huggingface-hub
