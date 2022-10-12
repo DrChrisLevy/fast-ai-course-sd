@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
         wget \
         htop \
         screen \
-        vim \
+        vim
 
 COPY . /workspace
 
