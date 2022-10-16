@@ -182,7 +182,8 @@ uncond_embeddings[0] # the token embeddings for the empty string.
 
 So we have `text_embeddings` from the text prompt and we have `uncond_embeddings`
 from the empty string `""`. But now we are going to concatenate them
-into one tensor and rename it `text_embeddings`.
+into one tensor and rename it `text_embeddings`. So now it is a batch of CLIP
+embeddings.
 
 ```{code-cell} ipython3
 text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
@@ -293,11 +294,72 @@ print(latents[0].cpu().flatten().mean(), latents[0].cpu().flatten().std())
 sns.displot(latents[0].cpu().flatten())
 ```
 
-Okay, so we are starting with some amount of random scheduled noise
+Okay, so we are starting with some amount of random  noise
 from the scheduler within the latent space.
 
 ```{code-cell} ipython3
+latents.shape
+```
 
+```{code-cell} ipython3
+latents.shape
+```
+
+```{code-cell} ipython3
+latent_model_input.shape
+```
+
+```{code-cell} ipython3
+i = 0
+t = scheduler.timesteps[0]
+print(i, t)
+
+# Loop
+with autocast("cuda"):
+    # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
+    # Remember we have the text embeddings which is the tensor with batch size 2.
+    # The first embedding tensor corresponds to the uncond embeddings and the second tensor
+    # corresponds to the text embeddigns for the text prompt.
+    # So here we want to do one forward pass through the Unet.
+    # Notice that in the latent space we are starting with the same laten tensor
+    # for both the uncond prompt and the text prompt
+    latent_model_input = torch.cat([latents] * 2) # torch.Size([2, 4, 64, 64])
+    sigma = scheduler.sigmas[i]
+    # Scale the latents (preconditioning):
+    # latent_model_input = latent_model_input / ((sigma**2 + 1) ** 0.5) # Diffusers 0.3 and below
+    latent_model_input = scheduler.scale_model_input(latent_model_input, t)
+
+    # predict the noise residual
+    with torch.no_grad():
+        # Doing for a batch size of 2. [uncond laten tensor, prompt latent tensor] (both the same actually)
+        #                              [uncond text embedding, text prompt embedding]
+        noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample # torch.Size([2, 4, 64, 64])
+        
+    # perform guidance
+    noise_pred_uncond, noise_pred_text = noise_pred.chunk(2) # b/c we did a batch of 2 things
+    # take like a weighted combination of the predicted noise for uncond prompt and the text prompt
+    # if the guidance_scale is 0 then it fully ignores the text prompt. 
+    noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond) # torch.Size([1, 4, 64, 64])
+
+    # compute the previous noisy sample x_t -> x_t-1
+    # latents = scheduler.step(noise_pred, i, latents)["prev_sample"] # Diffusers 0.3 and below
+    # This is removing the predicted noise from the latent to get us "closer" to where we want to get in the latent space
+    # It is using the scheduler, timestep, and the amount of noise together to predict next latent position
+    latents = scheduler.step(noise_pred, t, latents).prev_sample
+    
+    
+```
+
+```{code-cell} ipython3
+??scheduler.step
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+latents_to_pil(noise_pred)
 ```
 
 ```{code-cell} ipython3
@@ -309,13 +371,6 @@ from the scheduler within the latent space.
 ```
 
 ```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
-
-
 # Loop
 with autocast("cuda"):
     for i, t in tqdm(enumerate(scheduler.timesteps)):
