@@ -302,72 +302,37 @@ latents.shape
 ```
 
 ```{code-cell} ipython3
-latents.shape
-```
-
-```{code-cell} ipython3
-latent_model_input.shape
-```
-
-```{code-cell} ipython3
-i = 0
-t = scheduler.timesteps[0]
-print(i, t)
-
-# Loop
-with autocast("cuda"):
-    # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-    # Remember we have the text embeddings which is the tensor with batch size 2.
-    # The first embedding tensor corresponds to the uncond embeddings and the second tensor
-    # corresponds to the text embeddigns for the text prompt.
-    # So here we want to do one forward pass through the Unet.
-    # Notice that in the latent space we are starting with the same laten tensor
-    # for both the uncond prompt and the text prompt
-    latent_model_input = torch.cat([latents] * 2) # torch.Size([2, 4, 64, 64])
-    sigma = scheduler.sigmas[i]
-    # Scale the latents (preconditioning):
-    # latent_model_input = latent_model_input / ((sigma**2 + 1) ** 0.5) # Diffusers 0.3 and below
-    latent_model_input = scheduler.scale_model_input(latent_model_input, t)
-
-    # predict the noise residual
+def pil_to_latent(input_im):
+    # Single image -> single latent in a batch (so size 1, 4, 64, 64)
     with torch.no_grad():
-        # Doing for a batch size of 2. [uncond laten tensor, prompt latent tensor] (both the same actually)
-        #                              [uncond text embedding, text prompt embedding]
-        noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample # torch.Size([2, 4, 64, 64])
-        
-    # perform guidance
-    noise_pred_uncond, noise_pred_text = noise_pred.chunk(2) # b/c we did a batch of 2 things
-    # take like a weighted combination of the predicted noise for uncond prompt and the text prompt
-    # if the guidance_scale is 0 then it fully ignores the text prompt. 
-    noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond) # torch.Size([1, 4, 64, 64])
+        latent = vae.encode(tfms.ToTensor()(input_im).unsqueeze(0).to(torch_device)*2-1) # Note scaling
+    return 0.18215 * latent.latent_dist.sample()
 
-    # compute the previous noisy sample x_t -> x_t-1
-    # latents = scheduler.step(noise_pred, i, latents)["prev_sample"] # Diffusers 0.3 and below
-    # This is removing the predicted noise from the latent to get us "closer" to where we want to get in the latent space
-    # It is using the scheduler, timestep, and the amount of noise together to predict next latent position
-    latents = scheduler.step(noise_pred, t, latents).prev_sample
-    
-    
+def latents_to_pil(latents):
+    # bath of latents -> list of images
+    latents = (1 / 0.18215) * latents
+    with torch.no_grad():
+        image = vae.decode(latents).sample
+    image = (image / 2 + 0.5).clamp(0, 1)
+    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+    images = (image * 255).round().astype("uint8")
+    pil_images = [Image.fromarray(image) for image in images]
+    return pil_images
+
+def image_grid(imgs, rows, cols):
+    w,h = imgs[0].size
+    grid = Image.new('RGB', size=(cols*w, rows*h))
+    for i, img in enumerate(imgs): grid.paste(img, box=(i%cols*w, i//cols*h))
+    return grid
 ```
 
-```{code-cell} ipython3
-??scheduler.step
-```
+We can look at the latents in the original pixel space too.
 
 ```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-latents_to_pil(noise_pred)
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
+# decode the update latents to see whats going on
+plt.figure()
+plt.title('latents in pixel space')
+plt.imshow(latents_to_pil(latents)[0])
 ```
 
 ```{code-cell} ipython3
@@ -392,52 +357,22 @@ with autocast("cuda"):
         # compute the previous noisy sample x_t -> x_t-1
         # latents = scheduler.step(noise_pred, i, latents)["prev_sample"] # Diffusers 0.3 and below
         latents = scheduler.step(noise_pred, t, latents).prev_sample
+        
+        # decode the predicted noise so we can see whats going on at each step.
+        # Just for learning purposes. Not need to generate the final image.
+        plt.figure()
+        plt.subplot(1, 2, 1)
+        if i == 0:
+            plt.title(f'LEFT: latent in pixel space , RIGHT: predicted noise in latent space {i,float(t),float(sigma)}')
+        plt.imshow(latents_to_pil(latents)[0])
+        # decode the update latents to see whats going on
+        plt.subplot(1, 2, 2)
+        plt.imshow(latents_to_pil(noise_pred.type(torch.float32))[0])
 
-# scale and decode the image latents with vae
-latents = 1 / 0.18215 * latents
-with torch.no_grad():
-    image = vae.decode(latents).sample
-
-# Display
-image = (image / 2 + 0.5).clamp(0, 1)
-image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-images = (image * 255).round().astype("uint8")
-pil_images = [Image.fromarray(image) for image in images]
-pil_images[0]
-```
-
-```{code-cell} ipython3
 
 ```
-
-It's working, but that's quite a bit of code! Let's look at the components one by one.
-
-+++
 
 ## The Autoencoder (AE)
-
-The AE can 'encode' an image into some sort of latent representation, and decode this back into an image. I've wrapped the code for this into a couple of functions here so we can see what this looks like in action:
-
-```{code-cell} ipython3
-def pil_to_latent(input_im):
-    # Single image -> single latent in a batch (so size 1, 4, 64, 64)
-    with torch.no_grad():
-        latent = vae.encode(tfms.ToTensor()(input_im).unsqueeze(0).to(torch_device)*2-1) # Note scaling
-    return 0.18215 * latent.latent_dist.sample()
-
-def latents_to_pil(latents):
-    # bath of latents -> list of images
-    latents = (1 / 0.18215) * latents
-    with torch.no_grad():
-        image = vae.decode(latents).sample
-    image = (image / 2 + 0.5).clamp(0, 1)
-    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-    images = (image * 255).round().astype("uint8")
-    pil_images = [Image.fromarray(image) for image in images]
-    return pil_images
-```
-
-We'll use a pic from the web here, but you can load your own instead by uploading it and editing the filename in the next cell. 
 
 ```{code-cell} ipython3
 # Download a demo Image
@@ -526,15 +461,11 @@ plt.ylabel('sigma')
 plt.show()
 ```
 
-```{code-cell} ipython3
-
-```
-
 This 'sigma' is the amount of noise added to the latent representation. Let's visualize what this looks like by adding a bit of noise to our encoded image and then decoding this noised version:
 
 ```{code-cell} ipython3
 noise = torch.randn_like(encoded) # Random noise
-sampling_step = 1 # Equivalent to step 10 out of 15 in the schedule above
+sampling_step = 10 # step 10 out of 15 in the schedule above
 # encoded_and_noised = scheduler.add_noise(encoded, noise, timestep) # Diffusers 0.3 and below
 encoded_and_noised = scheduler.add_noise(encoded, noise, timesteps=torch.tensor([scheduler.timesteps[sampling_step]]))
 latents_to_pil(encoded_and_noised.float())[0] # Display
@@ -544,9 +475,7 @@ What does this look like at different timesteps? Experiment and see for yourself
 
 If you uncomment the cell below you'll see that in this case the `scheduler.add_noise` function literally just adds noise scaled by sigma: `noisy_samples = original_samples + noise * sigmas`
 
-```{code-cell} ipython3
-
-```
++++
 
 Other diffusion models may be trained with different noising and scheduling approaches, some of which keep the variance fairly constant across noise levels ('variance preserving') with different scaling and mixing tricks instead of having noisy latents with higher and higher variance as more noise is added ('variance exploding'). 
 
