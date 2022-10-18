@@ -133,3 +133,4 @@ dmypy.json
 .obsidian
 
 diffusion-nbs
+*.ipynb
