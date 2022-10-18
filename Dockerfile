@@ -9,9 +9,7 @@ RUN apt-get update && apt-get install -y \
         vim \
         curl
 
-COPY . /workspace
-
+COPY requirements.txt /workspace
 RUN pip install -r requirements.txt
 
-# download notebooks
-RUN git clone https://github.com/fastai/diffusion-nbs.git
+COPY . /workspace

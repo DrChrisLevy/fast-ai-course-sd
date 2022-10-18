@@ -1,5 +1,11 @@
 # fast-ai-course-sd
 
+## Clone Notebooks
+
+```
+git clone https://github.com/fastai/diffusion-nbs.git
+```
+
 ## Build Docker
 
 ```
