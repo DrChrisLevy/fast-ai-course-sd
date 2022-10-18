@@ -5,6 +5,7 @@ Grab any other notebooks or code you want to clone locally and do it here:
 
 ```
 git clone https://github.com/fastai/diffusion-nbs.git
+git clone https://github.com/fastai/course22p2.git
 ```
 
 ## Build Docker Image
