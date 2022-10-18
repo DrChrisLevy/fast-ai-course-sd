@@ -1,0 +1,6 @@
+fastai
+diffusers
+transformers
+huggingface-hub
+notebook
+jupytext
