@@ -1,21 +1,23 @@
 # fast-ai-course-sd
 
-## Clone Notebooks
+## Clone External Notebooks
+Grab any other notebooks or code you want to clone locally and do it here:
 
 ```
 git clone https://github.com/fastai/diffusion-nbs.git
 ```
 
-## Build Docker
-
+## Build Docker Image
 ```
 docker build . -t fast-ai
 ```
 
-## Run Docker
+## Run Docker Container
 ```
 docker run -it -p 8888:8888 --gpus all -v $PWD:/workspace fast-ai /bin/bash
 ```
+
+Now in the docker container:
 
 ```
 huggingface-cli login
