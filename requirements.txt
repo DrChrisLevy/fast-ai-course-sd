@@ -4,3 +4,4 @@ transformers
 huggingface-hub
 notebook
 jupytext
+seaborn

@@ -57,4 +57,5 @@ BUCKLE UP! Going to need Patience!
 	- [Imagic: Text-Based Real Image Editing with Diffusion Models](https://arxiv.org/pdf/2210.09276.pdf)
 - Try implementing negative prompts, image2image, i.e. one of the tricks without using the HF PipeLIne class to do it but just using the building  blocks of the 3 main models (Unet, CLIP, VAE) and the schedulers and the diffusion loop etc. 
 - Go over itertools sttuff i.e. `list(iter(lambda: list(islice(it, 28)), []))`
+- go over the first matrix mult notebook that Jeremy started today.
 - I want to clone the course repo and play with the code. So I may want to add my own notes and things. But then the main repo will keep being updated. Should we fork it? Are we going to be using nb-dev?
