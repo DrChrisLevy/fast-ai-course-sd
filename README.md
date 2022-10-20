@@ -1,5 +1,27 @@
 # fast-ai-course-sd
 
+## ssh to server (optional)
+Modify for your pem key and IP:
+
+```
+ssh -i "<pem key>" ubuntu@<ip> -L 8888:localhost:8888
+```
+
+## Configure Git
+
+```
+git config --global user.email christopherdavidlevy@gmail.com
+git config --global user.name DrChrisLevy
+git config credential.helper store
+```
+
+## clone repo
+
+```
+git clone https://github.com/DrChrisLevy/fast-ai-course-sd.git
+cd fast-ai-course-sd
+```
+
 ## Clone External Notebooks
 Grab any other notebooks or code you want to clone locally and do it here:
 
@@ -14,12 +36,6 @@ docker build . -t fast-ai
 ```
 
 ## Run Docker Container
-
-**CPU**
-
-```
- docker run -it -p 8888:8888 -v $PWD:/workspace fast-ai /bin/bash
-```
 
 **GPU**
 
