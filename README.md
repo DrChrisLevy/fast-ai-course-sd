@@ -4,22 +4,21 @@
 Modify for your pem key and IP:
 
 ```
-ssh -i "<pem key>" ubuntu@<ip> -L 8888:localhost:8888
+ssh -i "lambda-labs-key.pem" ubuntu@132.145.139.113 -L 8888:localhost:8888
+```
+
+
+## clone repo
+```
+git clone https://github.com/DrChrisLevy/fast-ai-course-sd.git
+cd fast-ai-course-sd
 ```
 
 ## Configure Git
-
 ```
 git config --global user.email christopherdavidlevy@gmail.com
 git config --global user.name DrChrisLevy
 git config credential.helper store
-```
-
-## clone repo
-
-```
-git clone https://github.com/DrChrisLevy/fast-ai-course-sd.git
-cd fast-ai-course-sd
 ```
 
 ## Clone External Notebooks
