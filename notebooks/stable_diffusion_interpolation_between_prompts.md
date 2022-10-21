@@ -84,8 +84,6 @@ text_encoder = text_encoder.to(torch_device) if text_encoder.device != torch_dev
 unet = unet.to(torch_device) if unet.device != torch_device else unet
 ```
 
-
-
 ```{code-cell} ipython3
 def embed_text(text, max_length=None):
     if max_length is None:
@@ -221,7 +219,7 @@ max_length = text_input.input_ids.shape[-1]
 # empty string
 uncond_input, uncond_embeddings = embed_text([""] * batch_size, max_length)
 
-img_to_img(init_image, prompt_embedding, uncond_embeddings, start_step=20, guidance_scale=7.5)
+img_to_img(init_image, prompt_embedding, uncond_embeddings, start_step=15, guidance_scale=7.5)
 ```
 
 ```{code-cell} ipython3
@@ -321,28 +319,28 @@ img = start_img_a
 generator = torch.manual_seed(23532)
 for w in torch.linspace(0, 1, steps=10):
     prompt_embedding = torch.lerp(a, b, torch.full_like(a, w))
-    img = img_to_img(img, prompt_embedding, uncond_embeddings, guidance_scale=7.5, num_inference_steps=30, start_step=20)
+    img = img_to_img(img, prompt_embedding, uncond_embeddings, guidance_scale=7.5, num_inference_steps=30, start_step=10)
     imgs.append(img)
 
-img = start_img_b
-generator = torch.manual_seed(23532)
+# img = start_img_b
+# generator = torch.manual_seed(23532)
 for w in torch.linspace(0, 1, steps=10):
     prompt_embedding = torch.lerp(b, c, torch.full_like(b, w))
-    img = img_to_img(img, prompt_embedding, uncond_embeddings, guidance_scale=7.5, num_inference_steps=30, start_step=20)
+    img = img_to_img(img, prompt_embedding, uncond_embeddings, guidance_scale=7.5, num_inference_steps=30, start_step=10)
     imgs.append(img)
     
-img = start_img_c
-generator = torch.manual_seed(23532)
+# img = start_img_c
+# generator = torch.manual_seed(23532)
 for w in torch.linspace(0, 1, steps=10):
     prompt_embedding = torch.lerp(c, d, torch.full_like(c, w))
-    img = img_to_img(img, prompt_embedding, uncond_embeddings, guidance_scale=7.5, num_inference_steps=30, start_step=20)
+    img = img_to_img(img, prompt_embedding, uncond_embeddings, guidance_scale=7.5, num_inference_steps=30, start_step=10)
     imgs.append(img)
     
-img = start_img_d
-generator = torch.manual_seed(23532)
+# img = start_img_d
+# generator = torch.manual_seed(23532)
 for w in torch.linspace(0, 1, steps=10):
     prompt_embedding = torch.lerp(d, a, torch.full_like(d, w))
-    img = img_to_img(img, prompt_embedding, uncond_embeddings, guidance_scale=7.5, num_inference_steps=30, start_step=20)
+    img = img_to_img(img, prompt_embedding, uncond_embeddings, guidance_scale=7.5, num_inference_steps=30, start_step=10)
     imgs.append(img)
 
                                          
@@ -350,20 +348,26 @@ for w in torch.linspace(0, 1, steps=10):
 ```
 
 ```{code-cell} ipython3
-imgs[0].save("pairs_seasons_smooth20.gif", save_all=True, append_images=imgs[1:], duration=200, loop=0)
+imgs[0].save("pairs_seasons_smooth32.gif", save_all=True, append_images=imgs[1:], duration=200, loop=0)
+
+
 ```
 
 ```{code-cell} ipython3
 from IPython.display import Image as IPythonImage
-IPythonImage(url='pairs_seasons_smooth20.gif')
+IPythonImage(url='pairs_seasons_smooth32.gif')
 ```
 
 ```{code-cell} ipython3
-imgs[-1]
+
 ```
 
 ```{code-cell} ipython3
-len(imgs)
+
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3
