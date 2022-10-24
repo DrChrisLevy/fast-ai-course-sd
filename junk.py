@@ -118,12 +118,17 @@ class StableDiffusion:
     def img_2_img(
         cls, prompt, image, start_step=10, num_inference_steps=50, guidance_scale=8, seed=None,
     ):
-        if len(prompt) != 1:
-            raise Exception("only supports prompt with batch size of 1")
-        encoded = cls.pil_to_latent(image)
 
-        batch_size = len(prompt)
-        text_input, text_embeddings = cls.embed_text(prompt)
+        batch_size = 1  # only supported
+        if isinstance(prompt, torch.Tensor):
+            assert prompt.shape == torch.Size([1, 77, 768])  # TODO
+            text_embeddings = prompt
+        elif isinstance(prompt, list):
+            assert len(prompt) == 1
+            _, text_embeddings = cls.embed_text(prompt)
+        else:
+            raise Exception("prompt not proper format")
+
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
@@ -133,6 +138,7 @@ class StableDiffusion:
         # Prep latents (noising appropriately for start_step)
         if seed:
             torch.manual_seed(seed)
+        encoded = cls.pil_to_latent(image)
         noise = torch.randn_like(encoded)
         latents = cls.scheduler.add_noise(
             encoded, noise, timesteps=torch.tensor([cls.scheduler.timesteps[start_step]]),
