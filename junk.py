@@ -57,6 +57,25 @@ class StableDiffusion:
         return text_input, text_embeddings
 
     @classmethod
+    def diffusion_step(cls, latents, text_embeddings, t, guidance_scale):
+        latent_model_input = torch.cat([latents] * 2)
+        latent_model_input = cls.scheduler.scale_model_input(latent_model_input, t)
+
+        # predict the noise residual
+        with torch.no_grad():
+            noise_pred = cls.unet(
+                latent_model_input, t, encoder_hidden_states=text_embeddings
+            ).sample
+
+        # perform guidance
+        noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+
+        # compute the previous noisy sample x_t -> x_t-1
+        latents = cls.scheduler.step(noise_pred, t, latents).prev_sample
+        return latents
+
+    @classmethod
     def diffusion_loop(cls, text_embeddings, num_inference_steps=30, guidance_scale=7.5, seed=None):
         batch_size = text_embeddings.shape[0]
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
@@ -77,23 +96,7 @@ class StableDiffusion:
         # Loop
         with autocast("cuda"):
             for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
-                latent_model_input = torch.cat([latents] * 2)
-                latent_model_input = cls.scheduler.scale_model_input(latent_model_input, t)
-
-                # predict the noise residual
-                with torch.no_grad():
-                    noise_pred = cls.unet(
-                        latent_model_input, t, encoder_hidden_states=text_embeddings
-                    ).sample
-
-                # perform guidance
-                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-                noise_pred = noise_pred_uncond + guidance_scale * (
-                    noise_pred_text - noise_pred_uncond
-                )
-
-                # compute the previous noisy sample x_t -> x_t-1
-                latents = cls.scheduler.step(noise_pred, t, latents).prev_sample
+                latents = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
 
         return cls.latents_to_pil(latents)
 
@@ -140,25 +143,7 @@ class StableDiffusion:
         with autocast("cuda"):
             for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
                 if i > start_step:  # << This is the only modification to the loop we do
-
-                    # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-                    latent_model_input = torch.cat([latents] * 2)
-                    latent_model_input = cls.scheduler.scale_model_input(latent_model_input, t)
-
-                    # predict the noise residual
-                    with torch.no_grad():
-                        noise_pred = cls.unet(
-                            latent_model_input, t, encoder_hidden_states=text_embeddings
-                        )["sample"]
-
-                    # perform guidance
-                    noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-                    noise_pred = noise_pred_uncond + guidance_scale * (
-                        noise_pred_text - noise_pred_uncond
-                    )
-
-                    # compute the previous noisy sample x_t -> x_t-1
-                    latents = cls.scheduler.step(noise_pred, t, latents).prev_sample
+                    latents = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
 
         return cls.latents_to_pil(latents)
 
