@@ -4,7 +4,7 @@
 Modify for your pem key and IP:
 
 ```
-ssh -i "lambda-labs-key.pem" ubuntu@132.145.139.113 -L 8888:localhost:8888
+ssh -i "lambda-labs-key.pem" ubuntu@<ip> -L 8888:localhost:8888
 ```
 
 
