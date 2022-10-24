@@ -50,20 +50,14 @@ class StableDiffusion:
     def embed_text(cls, text):
         max_length = cls.tokenizer.model_max_length
         text_input = cls.tokenizer(
-            text,
-            padding="max_length",
-            max_length=max_length,
-            truncation=True,
-            return_tensors="pt",
+            text, padding="max_length", max_length=max_length, truncation=True, return_tensors="pt",
         )
         with torch.no_grad():
             text_embeddings = cls.text_encoder(text_input.input_ids.to(torch_device))[0]
         return text_input, text_embeddings
 
     @classmethod
-    def diffusion_loop(
-        cls, text_embeddings, num_inference_steps=30, guidance_scale=7.5, seed=None
-    ):
+    def diffusion_loop(cls, text_embeddings, num_inference_steps=30, guidance_scale=7.5, seed=None):
         batch_size = text_embeddings.shape[0]
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
@@ -84,9 +78,7 @@ class StableDiffusion:
         with autocast("cuda"):
             for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
                 latent_model_input = torch.cat([latents] * 2)
-                latent_model_input = cls.scheduler.scale_model_input(
-                    latent_model_input, t
-                )
+                latent_model_input = cls.scheduler.scale_model_input(latent_model_input, t)
 
                 # predict the noise residual
                 with torch.no_grad():
@@ -111,27 +103,17 @@ class StableDiffusion:
         23532 for seed for tests
         """
         text_input, text_embeddings = cls.embed_text(prompt)
-        return cls.diffusion_loop(
-            text_embeddings, num_inference_steps, guidance_scale, seed
-        )
+        return cls.diffusion_loop(text_embeddings, num_inference_steps, guidance_scale, seed)
 
     @classmethod
     def embeddings_to_img(
         cls, text_embeddings, num_inference_steps=30, guidance_scale=7.5, seed=None
     ):
-        return cls.diffusion_loop(
-            text_embeddings, num_inference_steps, guidance_scale, seed
-        )
+        return cls.diffusion_loop(text_embeddings, num_inference_steps, guidance_scale, seed)
 
     @classmethod
     def img_2_img(
-        cls,
-        prompt,
-        image,
-        start_step=10,
-        num_inference_steps=50,
-        guidance_scale=8,
-        seed=None,
+        cls, prompt, image, start_step=10, num_inference_steps=50, guidance_scale=8, seed=None,
     ):
         if len(prompt) != 1:
             raise Exception("only supports prompt with batch size of 1")
@@ -150,9 +132,7 @@ class StableDiffusion:
             torch.manual_seed(seed)
         noise = torch.randn_like(encoded)
         latents = cls.scheduler.add_noise(
-            encoded,
-            noise,
-            timesteps=torch.tensor([cls.scheduler.timesteps[start_step]]),
+            encoded, noise, timesteps=torch.tensor([cls.scheduler.timesteps[start_step]]),
         )
         latents = latents.to(torch_device).float()
 
@@ -163,9 +143,7 @@ class StableDiffusion:
 
                     # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
                     latent_model_input = torch.cat([latents] * 2)
-                    latent_model_input = cls.scheduler.scale_model_input(
-                        latent_model_input, t
-                    )
+                    latent_model_input = cls.scheduler.scale_model_input(latent_model_input, t)
 
                     # predict the noise residual
                     with torch.no_grad():
