@@ -50,28 +50,29 @@ class StableDiffusion:
     def embed_text(cls, text):
         max_length = cls.tokenizer.model_max_length
         text_input = cls.tokenizer(
-            text, padding="max_length", max_length=max_length, truncation=True, return_tensors="pt",
+            text,
+            padding="max_length",
+            max_length=max_length,
+            truncation=True,
+            return_tensors="pt",
         )
         with torch.no_grad():
             text_embeddings = cls.text_encoder(text_input.input_ids.to(torch_device))[0]
         return text_input, text_embeddings
 
     @classmethod
-    def text_to_img(cls, prompt, num_inference_steps=30, guidance_scale=7.5, seed=None):
-        """
-        23532 for seed for tests
-        """
-        batch_size = len(prompt)
-        generator = torch.manual_seed(seed) if seed else None
-
-        text_input, text_embeddings = cls.embed_text(prompt)
+    def diffusion_loop(
+        cls, text_embeddings, num_inference_steps=30, guidance_scale=7.5, seed=None
+    ):
+        batch_size = text_embeddings.shape[0]
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
-
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+
         # Prep Scheduler
         cls.scheduler.set_timesteps(num_inference_steps)
 
         # Prep latents
+        generator = torch.manual_seed(seed) if seed else None
         latents = torch.randn(
             (batch_size, cls.unet.in_channels, cls.height // 8, cls.width // 8),
             generator=generator,
@@ -83,7 +84,9 @@ class StableDiffusion:
         with autocast("cuda"):
             for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
                 latent_model_input = torch.cat([latents] * 2)
-                latent_model_input = cls.scheduler.scale_model_input(latent_model_input, t)
+                latent_model_input = cls.scheduler.scale_model_input(
+                    latent_model_input, t
+                )
 
                 # predict the noise residual
                 with torch.no_grad():
@@ -101,58 +104,39 @@ class StableDiffusion:
                 latents = cls.scheduler.step(noise_pred, t, latents).prev_sample
 
         return cls.latents_to_pil(latents)
+
+    @classmethod
+    def text_to_img(cls, prompt, num_inference_steps=30, guidance_scale=7.5, seed=None):
+        """
+        23532 for seed for tests
+        """
+        text_input, text_embeddings = cls.embed_text(prompt)
+        return cls.diffusion_loop(
+            text_embeddings, num_inference_steps, guidance_scale, seed
+        )
 
     @classmethod
     def embeddings_to_img(
         cls, text_embeddings, num_inference_steps=30, guidance_scale=7.5, seed=None
     ):
-        batch_size = text_embeddings.shape[0]
-        generator = torch.manual_seed(seed) if seed else None
-
-        uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
-
-        text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
-        # Prep Scheduler
-        cls.scheduler.set_timesteps(num_inference_steps)
-
-        # Prep latents
-        latents = torch.randn(
-            (batch_size, cls.unet.in_channels, cls.height // 8, cls.width // 8),
-            generator=generator,
+        return cls.diffusion_loop(
+            text_embeddings, num_inference_steps, guidance_scale, seed
         )
-        latents = latents.to(torch_device)
-        latents = latents * cls.scheduler.init_noise_sigma
-
-        # Loop
-        with autocast("cuda"):
-            for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
-                latent_model_input = torch.cat([latents] * 2)
-                latent_model_input = cls.scheduler.scale_model_input(latent_model_input, t)
-
-                # predict the noise residual
-                with torch.no_grad():
-                    noise_pred = cls.unet(
-                        latent_model_input, t, encoder_hidden_states=text_embeddings
-                    ).sample
-
-                # perform guidance
-                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-                noise_pred = noise_pred_uncond + guidance_scale * (
-                    noise_pred_text - noise_pred_uncond
-                )
-
-                # compute the previous noisy sample x_t -> x_t-1
-                latents = cls.scheduler.step(noise_pred, t, latents).prev_sample
-
-        return cls.latents_to_pil(latents)
 
     @classmethod
     def img_2_img(
-        cls, prompt, image, start_step=10, num_inference_steps=50, guidance_scale=8, seed=32
+        cls,
+        prompt,
+        image,
+        start_step=10,
+        num_inference_steps=50,
+        guidance_scale=8,
+        seed=None,
     ):
+        if len(prompt) != 1:
+            raise Exception("only supports prompt with batch size of 1")
         encoded = cls.pil_to_latent(image)
 
-        torch.manual_seed(seed)
         batch_size = len(prompt)
         text_input, text_embeddings = cls.embed_text(prompt)
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
@@ -162,34 +146,41 @@ class StableDiffusion:
         cls.scheduler.set_timesteps(num_inference_steps)
 
         # Prep latents (noising appropriately for start_step)
+        if seed:
+            torch.manual_seed(seed)
         noise = torch.randn_like(encoded)
         latents = cls.scheduler.add_noise(
-            encoded, noise, timesteps=torch.tensor([cls.scheduler.timesteps[start_step]])
+            encoded,
+            noise,
+            timesteps=torch.tensor([cls.scheduler.timesteps[start_step]]),
         )
         latents = latents.to(torch_device).float()
 
         # Loop
-        for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
-            if i > start_step:  # << This is the only modification to the loop we do
+        with autocast("cuda"):
+            for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
+                if i > start_step:  # << This is the only modification to the loop we do
 
-                # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-                latent_model_input = torch.cat([latents] * 2)
-                latent_model_input = cls.scheduler.scale_model_input(latent_model_input, t)
+                    # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
+                    latent_model_input = torch.cat([latents] * 2)
+                    latent_model_input = cls.scheduler.scale_model_input(
+                        latent_model_input, t
+                    )
 
-                # predict the noise residual
-                with torch.no_grad():
-                    noise_pred = cls.unet(
-                        latent_model_input, t, encoder_hidden_states=text_embeddings
-                    )["sample"]
+                    # predict the noise residual
+                    with torch.no_grad():
+                        noise_pred = cls.unet(
+                            latent_model_input, t, encoder_hidden_states=text_embeddings
+                        )["sample"]
 
-                # perform guidance
-                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-                noise_pred = noise_pred_uncond + guidance_scale * (
-                    noise_pred_text - noise_pred_uncond
-                )
+                    # perform guidance
+                    noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                    noise_pred = noise_pred_uncond + guidance_scale * (
+                        noise_pred_text - noise_pred_uncond
+                    )
 
-                # compute the previous noisy sample x_t -> x_t-1
-                latents = cls.scheduler.step(noise_pred, t, latents).prev_sample
+                    # compute the previous noisy sample x_t -> x_t-1
+                    latents = cls.scheduler.step(noise_pred, t, latents).prev_sample
 
         return cls.latents_to_pil(latents)
 
