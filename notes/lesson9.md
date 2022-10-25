@@ -25,3 +25,4 @@
   - [GLIDE: Towards Photorealistic Image Generation and Editing with Text-Guided Diffusion Models](https://www.youtube.com/watch?v=gwI6g1pBD84)
   - [OpenAI GLIDE: Towards Photorealistic Image Generation and Editing with Text-Guided Diffusion Models](https://www.youtube.com/watch?v=lvv4N2nf-HU)
 - there are some useful functions in those notebooks. Maybe start creating some utils.
+- i broke my notebook how. the one where I tried explaining something. diffusion loop.

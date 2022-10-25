@@ -133,4 +133,5 @@ dmypy.json
 .obsidian
 
 diffusion-nbs
+course22p2
 *.ipynb
