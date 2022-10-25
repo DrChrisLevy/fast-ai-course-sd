@@ -46,6 +46,31 @@ sd.img_2_img(prompt, init_image, start_step=20, num_inference_steps=50, guidance
 ```
 
 ```{code-cell} ipython3
+p = FastDownload().download('https://pbs.twimg.com/media/Ff25XIbXoAIQub0?format=jpg&name=large')
+init_image = Image.open(p).convert("RGB")
+print(init_image.size)
+init_image.thumbnail((3*512, 2*512))
+print(init_image.size)
+init_image
+```
+
+```{code-cell} ipython3
+StableDiffusion.height = 512*2
+StableDiffusion.width = 512*1
+```
+
+```{code-cell} ipython3
+prompt = ["diagon alley, cinematic lighting, battered, trending on artstation, 4k, hyperrealistic, focused, extreme details, unreal engine 5, cinematic, masterpiece"]
+sd.img_2_img(prompt, init_image, start_step=50, num_inference_steps=100, guidance_scale=8, seed=3490343)[0]
+```
+
+```{code-cell} ipython3
+# reset back to smaller images
+StableDiffusion.height = 512
+StableDiffusion.width = 512
+```
+
+```{code-cell} ipython3
 prompt = ["Paris in Spring, digital art"]
 text_input, text_embeddings = sd.embed_text(prompt)
 start_img = sd.embeddings_to_img(text_embeddings, num_inference_steps=30, guidance_scale=7.5, seed=23532)[0]
@@ -100,8 +125,4 @@ imgs[0].save("paris_seasons_interp.gif", save_all=True, append_images=imgs[1:], 
 ```{code-cell} ipython3
 from IPython.display import Image as IPythonImage
 IPythonImage(url='paris_seasons_interp.gif')
-```
-
-```{code-cell} ipython3
-
 ```
