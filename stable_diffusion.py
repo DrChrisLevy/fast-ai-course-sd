@@ -102,9 +102,6 @@ class StableDiffusion:
 
     @classmethod
     def text_to_img(cls, prompt, num_inference_steps=30, guidance_scale=7.5, seed=None):
-        """
-        23532 for seed for tests
-        """
         text_input, text_embeddings = cls.embed_text(prompt)
         return cls.diffusion_loop(text_embeddings, num_inference_steps, guidance_scale, seed)
 
