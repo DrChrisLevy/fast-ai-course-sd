@@ -19,6 +19,8 @@ os.chdir('/workspace')
 
 ```{code-cell} ipython3
 from stable_diffusion import *
+import numpy as np
+import matplotlib.pyplot as plt
 sd = StableDiffusion()
 ```
 
@@ -33,7 +35,7 @@ text_encoder = sd.text_encoder
 ```
 
 ```{code-cell} ipython3
-!curl --output horse.jpg 'https://nationaltoday.com/wp-content/uploads/2022/02/International-Zebra-Day-640x514.jpg'
+!curl --output horse.jpg 'https://forums.fast.ai/uploads/default/original/3X/7/0/709733c3ab089787b22ccc166b918738dbebfd1e.png'
 ```
 
 ```{code-cell} ipython3
@@ -45,15 +47,15 @@ input_image
 ```{code-cell} ipython3
 def one_step(prompt = ["a zebra"], seed=42, sampling_step = 46, guidance_scale=7.5):
     latents = sd.pil_to_latent(input_image)
-    sd.scheduler.set_timesteps(50)
+    scheduler.set_timesteps(50)
     noise = torch.randn_like(latents) # Random noise
     generator = torch.manual_seed(seed) # this is important !!
-    latents = sd.scheduler.add_noise(latents, noise, timesteps=torch.tensor([sd.scheduler.timesteps[sampling_step]]))
+    latents = scheduler.add_noise(latents, noise, timesteps=torch.tensor([scheduler.timesteps[sampling_step]]))
     latents = latents.to(torch_device).float()
     sd.latents_to_pil(latents.float())[0] # Display
     
     sigma = scheduler.sigmas[sampling_step]
-    t = sd.scheduler.timesteps[sampling_step]
+    t = scheduler.timesteps[sampling_step]
 #     print(sampling_step, t, sigma)
     
     # Prep text
@@ -125,7 +127,10 @@ img
 ```
 
 ```{code-cell} ipython3
-
+gray = np.array(img.convert('L'))
+gray = (gray-gray.min())/(gray.max()-gray.min())
+gray = np.where(gray>0.5,1,0)
+plt.imshow(gray,cmap='gray')
 ```
 
 ```{code-cell} ipython3
@@ -168,60 +173,6 @@ bw[bw >= 128] = 255 # White
 # Now we put it back in Pillow/PIL land
 imfile = Image.fromarray(bw)
 imfile
-```
-
-```{code-cell} ipython3
-def convert_binary(image_matrix, thresh_val):
-    white = 255
-    black = 0
-    
-    initial_conv = np.where((image_matrix <= thresh_val), image_matrix, white)
-    final_conv = np.where((initial_conv > thresh_val), initial_conv, black)
-    
-    return final_conv
-```
-
-```{code-cell} ipython3
-def binarize_this(X, thresh_val=127, with_plot=False, gray_scale=False):
-    image_src = X
-    if not gray_scale:
-        cmap_val = None
-        r_img, g_img, b_img = image_src[:, :, 0], image_src[:, :, 1], image_src[:, :, 2]
-        
-        r_b = convert_binary(image_matrix=r_img, thresh_val=thresh_val)
-        g_b = convert_binary(image_matrix=g_img, thresh_val=thresh_val)
-        b_b = convert_binary(image_matrix=b_img, thresh_val=thresh_val)
-        
-        image_b = np.dstack(tup=(r_b, g_b, b_b))
-    else:
-        cmap_val = 'gray'
-        image_b = convert_binary(image_matrix=image_src, thresh_val=thresh_val)
-    
-    if with_plot:
-        fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(10, 20))
-        
-        ax1.axis("off")
-        ax1.title.set_text('Original')
-        
-        ax2.axis("off")
-        ax2.title.set_text("Binarized")
-        
-        ax1.imshow(image_src, cmap=cmap_val)
-        ax2.imshow(image_b, cmap=cmap_val)
-        return True
-    return image_b
-```
-
-```{code-cell} ipython3
-binarize_this(X,with_plot=True,gray_scale=True)
-```
-
-```{code-cell} ipython3
-sd.img_2_img(['a zebra'], input_image, start_step=40, num_inference_steps=50, guidance_scale=4, seed=42)[0]
-```
-
-```{code-cell} ipython3
-sd.img_2_img(['a cow'], input_image, start_step=30, num_inference_steps=50, guidance_scale=4, seed=42)[0]
 ```
 
 ```{code-cell} ipython3
