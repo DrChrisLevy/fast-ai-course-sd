@@ -96,8 +96,6 @@ for i in range(40):
     noise = one_step(prompt = ["a zebra"], guidance_scale=10, seed=i*100, sampling_step=20)
     noises1.append(noise[0])
 noises1 = torch.stack(noises1)
-noise_pred1 = noises1.mean(axis=0)[None,:]
-sd.latents_to_pil(noise_pred1)[0]
 ```
 
 ```{code-cell} ipython3
@@ -106,56 +104,25 @@ for i in range(40):
     noise = one_step(prompt = ["a horse"], guidance_scale=10, seed=i*100, sampling_step=20)
     noises2.append(noise[0])
 noises2 = torch.stack(noises2)
-noise_pred2 = noises2.mean(axis=0)[None,:]
-sd.latents_to_pil(noise_pred2)[0]
 ```
 
 ```{code-cell} ipython3
-contrast1 = noise_pred1-noise_pred2
-sd.latents_to_pil(contrast1)[0]
+diffs = [np.array(sd.latents_to_pil(n1[None,:] - n2[None,:])[0]) for n1,n2 in zip(noises1,noises2)]
 ```
 
 ```{code-cell} ipython3
-contrast2 = noise_pred2-noise_pred1
-sd.latents_to_pil(contrast2)[0]
+X = np.mean(np.array(diffs),axis=0).astype('uint8')
 ```
 
 ```{code-cell} ipython3
-
+X = np.mean(X,axis=2)
+plt.imshow(X)
 ```
 
 ```{code-cell} ipython3
-img1 = sd.latents_to_pil(contrast1)[0]
-img1
-```
-
-```{code-cell} ipython3
-img2 = sd.latents_to_pil(contrast2)[0]
-img2
+plt.imshow(((X-X.min())/(X.max()-X.min()) < 0.47).astype('uint8'))
 ```
 
 ```{code-cell} ipython3
 
-```
-
-```{code-cell} ipython3
-mask = np.array(img1)
-plt.imshow(mask)
-```
-
-```{code-cell} ipython3
-mask.shape
-```
-
-```{code-cell} ipython3
-mask = (mask - mask.min()) / (mask.max()-mask.min())
-mask = np.mean(mask,axis=2)
-```
-
-```{code-cell} ipython3
-mask = (mask > 0.5).astype('uint8')
-```
-
-```{code-cell} ipython3
-plt.imshow(mask, cmap='Greys',  interpolation='nearest')
 ```
