@@ -91,53 +91,33 @@ def one_step(prompt = ["a zebra"], seed=42, sampling_step = 46, guidance_scale=7
 ```
 
 ```{code-cell} ipython3
-noises = []
-for seed in range(10):
-    noise = one_step(prompt = ["a zebra"], guidance_scale=10, seed=seed, sampling_step=20)
-    noises.append(noise[0].cpu().numpy())
+noises1 = []
+for i in range(40):
+    noise = one_step(prompt = ["a zebra"], guidance_scale=10, seed=i*100, sampling_step=20)
+    noises1.append(noise[0])
+noises1 = torch.stack(noises1)
+noise_pred1 = noises1.mean(axis=0)[None,:]
+sd.latents_to_pil(noise_pred1)[0]
 ```
 
 ```{code-cell} ipython3
-noise_pred1 = np.mean(np.array(noises),axis=0)[None,]
+noises2 = []
+for i in range(40):
+    noise = one_step(prompt = ["a horse"], guidance_scale=10, seed=i*100, sampling_step=20)
+    noises2.append(noise[0])
+noises2 = torch.stack(noises2)
+noise_pred2 = noises2.mean(axis=0)[None,:]
+sd.latents_to_pil(noise_pred2)[0]
 ```
 
 ```{code-cell} ipython3
-noises = []
-for seed in range(10):
-    noise = one_step(prompt = ["a horse"], guidance_scale=10, seed=seed, sampling_step=20)
-    noises.append(noise[0].cpu().numpy())
+contrast1 = noise_pred1-noise_pred2
+sd.latents_to_pil(contrast1)[0]
 ```
 
 ```{code-cell} ipython3
-noise_pred2 = np.mean(np.array(noises),axis=0)[None,:]
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-contrast = torch.tensor(noise_pred1-noise_pred2).to(torch_device)
-cls = StableDiffusion
-```
-
-```{code-cell} ipython3
-img = sd.latents_to_pil(contrast)[0]
-img
-```
-
-```{code-cell} ipython3
-gray = np.array(img.convert('L'))
-gray = (gray-gray.min())/(gray.max()-gray.min())
-gray = np.where(gray>0.5,1,0)
-plt.imshow(gray,cmap='gray')
-```
-
-```{code-cell} ipython3
-# Let's visualize the four channels of this latent representation:
-fig, axs = plt.subplots(1, 4, figsize=(16, 4))
-for c in range(4):
-    axs[c].imshow(contrast[0][c].cpu(), cmap='Greys')
+contrast2 = noise_pred2-noise_pred1
+sd.latents_to_pil(contrast2)[0]
 ```
 
 ```{code-cell} ipython3
@@ -145,36 +125,37 @@ for c in range(4):
 ```
 
 ```{code-cell} ipython3
-
+img1 = sd.latents_to_pil(contrast1)[0]
+img1
 ```
 
 ```{code-cell} ipython3
-X = np.array(img)
-```
-
-```{code-cell} ipython3
-plt.imshow(X)
-```
-
-```{code-cell} ipython3
-from PIL import Image
-import numpy as np
-
-col = img
-gray = col.convert('L')
-
-# Let numpy do the heavy lifting for converting pixels to pure black or white
-bw = np.asarray(gray).copy()
-
-# Pixel range is 0...255, 256/2 = 128
-bw[bw < 128] = 0    # Black
-bw[bw >= 128] = 255 # White
-
-# Now we put it back in Pillow/PIL land
-imfile = Image.fromarray(bw)
-imfile
+img2 = sd.latents_to_pil(contrast2)[0]
+img2
 ```
 
 ```{code-cell} ipython3
 
+```
+
+```{code-cell} ipython3
+mask = np.array(img1)
+plt.imshow(mask)
+```
+
+```{code-cell} ipython3
+mask.shape
+```
+
+```{code-cell} ipython3
+mask = (mask - mask.min()) / (mask.max()-mask.min())
+mask = np.mean(mask,axis=2)
+```
+
+```{code-cell} ipython3
+mask = (mask > 0.5).astype('uint8')
+```
+
+```{code-cell} ipython3
+plt.imshow(mask, cmap='Greys',  interpolation='nearest')
 ```
