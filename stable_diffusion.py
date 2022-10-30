@@ -11,9 +11,6 @@ from torchvision import transforms as tfms
 # Supress some unnecessary warnings when loading the CLIPTextModel
 logging.set_verbosity_error()
 
-# Set device
-torch_device = "cuda" if torch.cuda.is_available() else "cpu"
-
 
 class StableDiffusion:
     vae = None
@@ -21,6 +18,7 @@ class StableDiffusion:
     text_encoder = None
     unet = None
     scheduler = None
+    torch_device = "cuda" if torch.cuda.is_available() else "cpu"
 
     height = 512
     width = 512
@@ -29,16 +27,16 @@ class StableDiffusion:
         if StableDiffusion.vae is None:
             StableDiffusion.vae = AutoencoderKL.from_pretrained(
                 "CompVis/stable-diffusion-v1-4", subfolder="vae"
-            ).to(torch_device)
+            ).to(StableDiffusion.torch_device)
             StableDiffusion.tokenizer = CLIPTokenizer.from_pretrained(
                 "openai/clip-vit-large-patch14"
             )
             StableDiffusion.unet = UNet2DConditionModel.from_pretrained(
                 "CompVis/stable-diffusion-v1-4", subfolder="unet"
-            ).to(torch_device)
+            ).to(StableDiffusion.torch_device)
             StableDiffusion.text_encoder = CLIPTextModel.from_pretrained(
                 "openai/clip-vit-large-patch14"
-            ).to(torch_device)
+            ).to(StableDiffusion.torch_device)
             StableDiffusion.scheduler = LMSDiscreteScheduler(
                 beta_start=0.00085,
                 beta_end=0.012,
@@ -53,7 +51,7 @@ class StableDiffusion:
             text, padding="max_length", max_length=max_length, truncation=True, return_tensors="pt",
         )
         with torch.no_grad():
-            text_embeddings = cls.text_encoder(text_input.input_ids.to(torch_device))[0]
+            text_embeddings = cls.text_encoder(text_input.input_ids.to(cls.torch_device))[0]
         return text_input, text_embeddings
 
     @classmethod
@@ -65,7 +63,7 @@ class StableDiffusion:
         latents = cls.scheduler.add_noise(
             latents, noise, timesteps=torch.tensor([cls.scheduler.timesteps[sampling_step]])
         )
-        latents = latents.to(torch_device).float()
+        latents = latents.to(cls.torch_device).float()
         return latents
 
     @classmethod
@@ -98,17 +96,10 @@ class StableDiffusion:
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
-        # Prep Scheduler
-        cls.scheduler.set_timesteps(num_inference_steps)
-
-        # Prep latents
-        generator = torch.manual_seed(seed) if seed else None
-        latents = torch.randn(
-            (batch_size, cls.unet.in_channels, cls.height // 8, cls.width // 8),
-            generator=generator,
-        )
-        latents = latents.to(torch_device)
-        latents = latents * cls.scheduler.init_noise_sigma
+        # start with noisy random latent with scheduler.init_noise_sigma
+        latents = torch.zeros((batch_size, 4, cls.height // 8, cls.width // 8))
+        cls.scheduler.set_timesteps(50)
+        latents = cls.add_noise_to_latents(latents, num_inference_steps, 0, seed)
 
         # Loop
         with autocast("cuda"):
@@ -161,7 +152,7 @@ class StableDiffusion:
         # Single image -> single latent in a batch (so size 1, 4, 64, 64)
         with torch.no_grad():
             latent = cls.vae.encode(
-                tfms.ToTensor()(input_im).unsqueeze(0).to(torch_device) * 2 - 1
+                tfms.ToTensor()(input_im).unsqueeze(0).to(cls.torch_device) * 2 - 1
             )  # Note scaling
         return 0.18215 * latent.latent_dist.sample()
 
