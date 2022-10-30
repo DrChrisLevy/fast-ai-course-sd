@@ -35,8 +35,7 @@ text_encoder = sd.text_encoder
 ```
 
 ```{code-cell} ipython3
-!curl --output horse.jpg 'https://forums.fast.ai/uploads/default/original/3X/7/0/709733c3ab089787b22ccc166b918738dbebfd1e.png'
-# !curl --output horse.jpg 'https://media.istockphoto.com/photos/golden-retriever-in-the-field-with-yellow-flowers-picture-id1248529734?b=1&k=20&m=1248529734&s=170667a&w=0&h=Bl9Cgctw_ABsPBr0ue72e5GCtuAtQYPWmFi-HAa0J_s='
+!curl --output horse.jpg 'https://horseyhooves.com/wp-content/uploads/2022/08/Beautiful-horse-running-in-a-grassy-field.jpg.webp'
 ```
 
 ```{code-cell} ipython3
@@ -46,7 +45,7 @@ input_image
 ```
 
 ```{code-cell} ipython3
-def one_step(prompt = ["a dog"], seed=42, sampling_step = 46, guidance_scale=7.5):
+def one_step(prompt = ["a horse"], seed=42, sampling_step = 46, guidance_scale=7.5):
     latents = sd.pil_to_latent(input_image)
     scheduler.set_timesteps(50)
     noise = torch.randn_like(latents) # Random noise
@@ -92,7 +91,7 @@ def one_step(prompt = ["a dog"], seed=42, sampling_step = 46, guidance_scale=7.5
 
 ```{code-cell} ipython3
 noises1 = []
-for i in range(40):
+for i in range(50):
     noise = one_step(prompt = ["a horse"], guidance_scale=10, seed=i*100, sampling_step=20)
     noises1.append(noise[0])
 noises1 = torch.stack(noises1)
@@ -100,7 +99,7 @@ noises1 = torch.stack(noises1)
 
 ```{code-cell} ipython3
 noises2 = []
-for i in range(40):
+for i in range(50):
     noise = one_step(prompt = ["a zebra"], guidance_scale=10, seed=i*100, sampling_step=20)
     noises2.append(noise[0])
 noises2 = torch.stack(noises2)
@@ -129,13 +128,13 @@ plt.imshow(X2)
 ```
 
 ```{code-cell} ipython3
-X1B = ((X1-X1.min())/(X1.max()-X1.min()) < 0.4).astype('uint8')
+X1B = ((X1-X1.min())/(X1.max()-X1.min()) < 0.28).astype('uint8')
 plt.imshow(X1B.astype('uint8'))
 ```
 
 ```{code-cell} ipython3
-X2B = ((X2-X2.min())/(X2.max()-X2.min()) < 0.4).astype('uint8')
-plt.imshow(((X2-X2.min())/(X2.max()-X2.min()) < 0.4).astype('uint8'))
+X2B = ((X2-X2.min())/(X2.max()-X2.min()) < 0.45).astype('uint8')
+plt.imshow(X2B)
 ```
 
 ```{code-cell} ipython3
@@ -144,6 +143,35 @@ MASK = np.maximum(X1B,X2B).astype('uint8')
 
 ```{code-cell} ipython3
 plt.imshow(MASK)
+```
+
+```{code-cell} ipython3
+MASK = np.array([MASK,MASK,MASK]).transpose(1,2,0)
+```
+
+```{code-cell} ipython3
+MASK.shape
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+new_img = sd.img_2_img(['a zebra'], input_image,start_step=10, seed=50)[0]
+new_img
+```
+
+```{code-cell} ipython3
+plt.imshow(MASK*np.array(new_img) + input_image*(1-MASK)  )
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3
