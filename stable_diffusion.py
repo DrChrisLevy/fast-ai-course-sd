@@ -96,9 +96,9 @@ class StableDiffusion:
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
-        # start with noisy random latent with scheduler.init_noise_sigma
+        # start with noisy random latent
         latents = torch.zeros((batch_size, 4, cls.height // 8, cls.width // 8))
-        cls.scheduler.set_timesteps(50)
+        cls.scheduler.set_timesteps(num_inference_steps)
         latents = cls.add_noise_to_latents(latents, num_inference_steps, 0, seed)
 
         # Loop
