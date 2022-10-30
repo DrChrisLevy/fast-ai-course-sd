@@ -57,8 +57,8 @@ class StableDiffusion:
         return text_input, text_embeddings
 
     @classmethod
-    def add_noise_to_latents(cls, latents, inference_steps=50, sampling_step=40, seed=42):
-        cls.scheduler.set_timesteps(inference_steps)
+    def add_noise_to_latents(cls, latents, num_inference_steps=50, sampling_step=40, seed=42):
+        cls.scheduler.set_timesteps(num_inference_steps)
         if seed is not None:
             torch.manual_seed(seed)
         noise = torch.randn_like(latents)
@@ -69,9 +69,9 @@ class StableDiffusion:
         return latents
 
     @classmethod
-    def add_noise_to_image(cls, image, inference_steps=50, sampling_step=40, seed=42):
+    def add_noise_to_image(cls, image, num_inference_steps=50, sampling_step=40, seed=42):
         latents = cls.pil_to_latent(image)
-        return cls.add_noise_to_latents(latents, inference_steps, sampling_step, seed)
+        return cls.add_noise_to_latents(latents, num_inference_steps, sampling_step, seed)
 
     @classmethod
     def diffusion_step(cls, latents, text_embeddings, t, guidance_scale):
