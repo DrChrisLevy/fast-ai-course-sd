@@ -36,6 +36,7 @@ text_encoder = sd.text_encoder
 
 ```{code-cell} ipython3
 !curl --output horse.jpg 'https://forums.fast.ai/uploads/default/original/3X/7/0/709733c3ab089787b22ccc166b918738dbebfd1e.png'
+# !curl --output horse.jpg 'https://media.istockphoto.com/photos/golden-retriever-in-the-field-with-yellow-flowers-picture-id1248529734?b=1&k=20&m=1248529734&s=170667a&w=0&h=Bl9Cgctw_ABsPBr0ue72e5GCtuAtQYPWmFi-HAa0J_s='
 ```
 
 ```{code-cell} ipython3
@@ -45,7 +46,7 @@ input_image
 ```
 
 ```{code-cell} ipython3
-def one_step(prompt = ["a zebra"], seed=42, sampling_step = 46, guidance_scale=7.5):
+def one_step(prompt = ["a dog"], seed=42, sampling_step = 46, guidance_scale=7.5):
     latents = sd.pil_to_latent(input_image)
     scheduler.set_timesteps(50)
     noise = torch.randn_like(latents) # Random noise
@@ -87,13 +88,12 @@ def one_step(prompt = ["a zebra"], seed=42, sampling_step = 46, guidance_scale=7
     latents = scheduler.step(noise_pred, t, latents).prev_sample
     
     return noise_pred
-    
 ```
 
 ```{code-cell} ipython3
 noises1 = []
 for i in range(40):
-    noise = one_step(prompt = ["a zebra"], guidance_scale=10, seed=i*100, sampling_step=20)
+    noise = one_step(prompt = ["a horse"], guidance_scale=10, seed=i*100, sampling_step=20)
     noises1.append(noise[0])
 noises1 = torch.stack(noises1)
 ```
@@ -101,28 +101,42 @@ noises1 = torch.stack(noises1)
 ```{code-cell} ipython3
 noises2 = []
 for i in range(40):
-    noise = one_step(prompt = ["a horse"], guidance_scale=10, seed=i*100, sampling_step=20)
+    noise = one_step(prompt = ["a zebra"], guidance_scale=10, seed=i*100, sampling_step=20)
     noises2.append(noise[0])
 noises2 = torch.stack(noises2)
 ```
 
 ```{code-cell} ipython3
-diffs = [np.array(sd.latents_to_pil(n1[None,:] - n2[None,:])[0]) for n1,n2 in zip(noises1,noises2)]
+diffs1 = [np.array(sd.latents_to_pil(n1[None,:] - n2[None,:])[0]) for n1,n2 in zip(noises1,noises2)]
+diffs2 = [np.array(sd.latents_to_pil(n2[None,:] - n1[None,:])[0]) for n1,n2 in zip(noises1,noises2)]
 ```
 
 ```{code-cell} ipython3
-X = np.mean(np.array(diffs),axis=0).astype('uint8')
+X1 = np.mean(np.array(diffs1),axis=0).astype('uint8')
+X1 = np.mean(X1,axis=2)
+plt.imshow(X1)
 ```
 
 ```{code-cell} ipython3
-X = np.mean(X,axis=2)
-plt.imshow(X)
+X2 = np.mean(np.array(diffs2),axis=0).astype('uint8')
+X2 = np.mean(X2,axis=2)
+plt.imshow(X2)
 ```
 
 ```{code-cell} ipython3
-plt.imshow(((X-X.min())/(X.max()-X.min()) < 0.47).astype('uint8'))
+X1B = ((X1-X1.min())/(X1.max()-X1.min()) < 0.4).astype('uint8')
+plt.imshow(((X1-X1.min())/(X1.max()-X1.min()) < 0.4).astype('uint8'))
 ```
 
 ```{code-cell} ipython3
+X2B = ((X2-X2.min())/(X2.max()-X2.min()) < 0.4).astype('uint8')
+plt.imshow(((X2-X2.min())/(X2.max()-X2.min()) < 0.4).astype('uint8'))
+```
 
+```{code-cell} ipython3
+MASK = np.maximum(X1B,X2B).astype('uint8')
+```
+
+```{code-cell} ipython3
+plt.imshow(MASK)
 ```
