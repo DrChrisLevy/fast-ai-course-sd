@@ -35,7 +35,8 @@ text_encoder = sd.text_encoder
 ```
 
 ```{code-cell} ipython3
-!curl --output horse.jpg 'https://horseyhooves.com/wp-content/uploads/2022/08/Beautiful-horse-running-in-a-grassy-field.jpg.webp'
+!curl --output horse.jpg 'https://th-thumbnailer.cdn-si-edu.com/aZINl-wLtWrRfYD9ni4WU3STuDg=/fit-in/1600x0/filters:focal(3008x2005:3009x2006)/https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/6b/c3/6bc305cb-95dd-4e22-b45b-108c6e218200/gettyimages-1144833913.jpg'
+
 ```
 
 ```{code-cell} ipython3
@@ -54,7 +55,7 @@ def one_step(prompt = ["a horse"], seed=42, sampling_step = 46, guidance_scale=7
     latents = latents.to(torch_device).float()
     sd.latents_to_pil(latents.float())[0] # Display
     
-    sigma = scheduler.sigmas[sampling_step]
+#     sigma = scheduler.sigmas[sampling_step]
     t = scheduler.timesteps[sampling_step]
 #     print(sampling_step, t, sigma)
     
@@ -91,7 +92,7 @@ def one_step(prompt = ["a horse"], seed=42, sampling_step = 46, guidance_scale=7
 
 ```{code-cell} ipython3
 noises1 = []
-for i in range(50):
+for i in range(40):
     noise = one_step(prompt = ["a horse"], guidance_scale=10, seed=i*100, sampling_step=20)
     noises1.append(noise[0])
 noises1 = torch.stack(noises1)
@@ -99,7 +100,7 @@ noises1 = torch.stack(noises1)
 
 ```{code-cell} ipython3
 noises2 = []
-for i in range(50):
+for i in range(40):
     noise = one_step(prompt = ["a zebra"], guidance_scale=10, seed=i*100, sampling_step=20)
     noises2.append(noise[0])
 noises2 = torch.stack(noises2)
@@ -128,12 +129,12 @@ plt.imshow(X2)
 ```
 
 ```{code-cell} ipython3
-X1B = ((X1-X1.min())/(X1.max()-X1.min()) < 0.28).astype('uint8')
+X1B = ((X1-X1.min())/(X1.max()-X1.min()) < 0.5).astype('uint8')
 plt.imshow(X1B.astype('uint8'))
 ```
 
 ```{code-cell} ipython3
-X2B = ((X2-X2.min())/(X2.max()-X2.min()) < 0.45).astype('uint8')
+X2B = ((X2-X2.min())/(X2.max()-X2.min()) < 0.3).astype('uint8')
 plt.imshow(X2B)
 ```
 
@@ -158,12 +159,12 @@ MASK.shape
 ```
 
 ```{code-cell} ipython3
-new_img = sd.img_2_img(['a zebra'], input_image,start_step=10, seed=50)[0]
+new_img = sd.img_2_img(['a zebra'], input_image,start_step=20, seed=50)[0]
 new_img
 ```
 
 ```{code-cell} ipython3
-plt.imshow(MASK*np.array(new_img) + input_image*(1-MASK)  )
+plt.imshow(input_image*(1-MASK) + MASK*np.array(new_img))
 ```
 
 ```{code-cell} ipython3
