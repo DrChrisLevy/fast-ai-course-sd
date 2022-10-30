@@ -36,24 +36,86 @@ input_image
 
 ```{code-cell} ipython3
 # visualize adding noise to the image
-sd.latents_to_pil(sd.add_noise_to_image(input_image, 50, 40, seed=42))[0]
+latents = sd.add_noise_to_image(input_image, 50, 30, seed=42)
+sd.latents_to_pil(latents)[0]
 ```
 
 ```{code-cell} ipython3
-num_inference_steps = 50
-def one_step(prompt = ["a horse"], seed=42, sampling_step = 20, guidance_scale=7.5):
-    # Prep text
-    text_input, text_embeddings = sd.embed_text(prompt)
-    batch_size = text_embeddings.shape[0]
-    uncond_input, uncond_embeddings = sd.embed_text([""] * batch_size)
+# going back in reverse direction with one diffusion step
+_, text_embeddings = sd.embed_text("a horse")
+batch_size = text_embeddings.shape[0]
+uncond_input, uncond_embeddings = sd.embed_text([""] * batch_size)
+text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+
+latents1, noise_pred1 = sd.diffusion_step(latents, text_embeddings, sd.scheduler.timesteps[30], 8)
+sd.latents_to_pil(latents1)[0]
+```
+
+```{code-cell} ipython3
+# lets go in the opposite direction now (denoise)
+_, text_embeddings = sd.embed_text("a zebra")
+batch_size = text_embeddings.shape[0]
+uncond_input, uncond_embeddings = sd.embed_text([""] * batch_size)
+text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+
+latents2, noise_pred2 = sd.diffusion_step(latents, text_embeddings, sd.scheduler.timesteps[30], 8)
+sd.latents_to_pil(latents1)[0]
+```
+
+```{code-cell} ipython3
+cls = StableDiffusion
+
+def img_2_img(prompt, image, start_step=30, num_inference_steps=50, guidance_scale=8, seed=42):
+
+    batch_size = 1  # only supported
+    if isinstance(prompt, torch.Tensor):
+        assert prompt.shape == torch.Size([1, 77, 768])  # TODO
+        text_embeddings = prompt
+    elif isinstance(prompt, list):
+        assert len(prompt) == 1
+        _, text_embeddings = cls.embed_text(prompt)
+    else:
+        raise Exception("prompt not proper format")
+
+    uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
     text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
-    latents = sd.add_noise_to_image(input_image, num_inference_steps, sampling_step, seed)
-    
-    t = sd.scheduler.timesteps[sampling_step]
-    
-    latents, noise_pred = sd.diffusion_step(latents, text_embeddings, t, guidance_scale)
-    
-    return noise_pred
+
+    latents = cls.add_noise_to_image(image, num_inference_steps, start_step, seed)
+
+    noise_preds = torch.tensor([], device='cuda')
+    with autocast("cuda"):
+        for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
+            if i > start_step:  # << This is the only modification to the loop we do
+                latents, noise_pred = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
+                noise_preds = torch.concat((noise_preds, noise_pred))
+
+    return cls.latents_to_pil(latents), noise_preds
+```
+
+```{code-cell} ipython3
+noises1 = []
+for i in range(10):
+    vis, noise_preds1 = img_2_img( ["a horse"], input_image, 30, 50, 10, (i+1)*100)
+    noises1.append(noise_preds1[0]) # TODO what to do with the other noises
+noises1 = torch.stack(noises1)
+```
+
+```{code-cell} ipython3
+noises2 = []
+for i in range(10):
+    vis, noise_preds2 = img_2_img( ["a zebra"], input_image, 30, 50, 10, (i+1)*100)
+    noises2.append(noise_preds2[0]) # TODO what to do with the other noises
+noises2 = torch.stack(noises2)
+```
+
+```{code-cell} ipython3
+diffs1 = [np.array(sd.latents_to_pil(n1[None,:] - n2[None,:])[0]) for n1,n2 in zip(noises1,noises2)]
+diffs2 = [np.array(sd.latents_to_pil(n2[None,:] - n1[None,:])[0]) for n1,n2 in zip(noises1,noises2)]
+```
+
+```{code-cell} ipython3
+X1 = np.mean(np.array(diffs1),axis=0).astype('uint8')
+plt.imshow(X1)
 ```
 
 ```{code-cell} ipython3
@@ -117,30 +179,10 @@ MASK = np.array([MASK,MASK,MASK]).transpose(1,2,0)
 ```
 
 ```{code-cell} ipython3
-MASK.shape
-```
-
-```{code-cell} ipython3
-input_image
-```
-
-```{code-cell} ipython3
-new_img = sd.img_2_img(['a zebra'], input_image,start_step=25,num_inference_steps=50, seed=50)[0]
+new_img = sd.img_2_img(['a zebra'], input_image,start_step=30,num_inference_steps=50, seed=42)[0]
 new_img
 ```
 
 ```{code-cell} ipython3
 Image.fromarray(input_image*(1-MASK) + MASK*np.array(new_img))
-```
-
-```{code-cell} ipython3
-input_image
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
 ```
