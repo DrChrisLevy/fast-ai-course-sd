@@ -73,7 +73,7 @@ class StableDiffusion:
 
         # compute the previous noisy sample x_t -> x_t-1
         latents = cls.scheduler.step(noise_pred, t, latents).prev_sample
-        return latents
+        return latents, noise_pred
 
     @classmethod
     def diffusion_loop(cls, text_embeddings, num_inference_steps=30, guidance_scale=7.5, seed=None):
@@ -96,7 +96,7 @@ class StableDiffusion:
         # Loop
         with autocast("cuda"):
             for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
-                latents = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
+                latents, _ = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
 
         return cls.latents_to_pil(latents)
 
@@ -146,7 +146,7 @@ class StableDiffusion:
         with autocast("cuda"):
             for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
                 if i > start_step:  # << This is the only modification to the loop we do
-                    latents = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
+                    latents, _ = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
 
         return cls.latents_to_pil(latents)
 
