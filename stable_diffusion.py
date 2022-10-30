@@ -57,6 +57,23 @@ class StableDiffusion:
         return text_input, text_embeddings
 
     @classmethod
+    def add_noise_to_latents(cls, latents, inference_steps=50, sampling_step=40, seed=42):
+        cls.scheduler.set_timesteps(inference_steps)
+        if seed is not None:
+            torch.manual_seed(seed)
+        noise = torch.randn_like(latents)
+        latents = cls.scheduler.add_noise(
+            latents, noise, timesteps=torch.tensor([cls.scheduler.timesteps[sampling_step]])
+        )
+        latents = latents.to(torch_device).float()
+        return latents
+
+    @classmethod
+    def add_noise_to_image(cls, image, inference_steps=50, sampling_step=40, seed=42):
+        latents = cls.pil_to_latent(image)
+        return cls.add_noise_to_latents(latents, inference_steps, sampling_step, seed)
+
+    @classmethod
     def diffusion_step(cls, latents, text_embeddings, t, guidance_scale):
         latent_model_input = torch.cat([latents] * 2)
         latent_model_input = cls.scheduler.scale_model_input(latent_model_input, t)
@@ -129,18 +146,7 @@ class StableDiffusion:
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
-        # Prep Scheduler (setting the number of inference steps)
-        cls.scheduler.set_timesteps(num_inference_steps)
-
-        # Prep latents (noising appropriately for start_step)
-        if seed:
-            torch.manual_seed(seed)
-        encoded = cls.pil_to_latent(image)
-        noise = torch.randn_like(encoded)
-        latents = cls.scheduler.add_noise(
-            encoded, noise, timesteps=torch.tensor([cls.scheduler.timesteps[start_step]]),
-        )
-        latents = latents.to(torch_device).float()
+        latents = cls.add_noise_to_image(image, num_inference_steps, start_step, seed)
 
         # Loop
         with autocast("cuda"):
