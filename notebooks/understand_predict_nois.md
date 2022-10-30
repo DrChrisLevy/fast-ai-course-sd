@@ -25,15 +25,6 @@ sd = StableDiffusion()
 ```
 
 ```{code-cell} ipython3
-scheduler = sd.scheduler
-unet = sd.unet
-height=512
-width=512
-tokenizer = sd.tokenizer
-text_encoder = sd.text_encoder
-```
-
-```{code-cell} ipython3
 !curl --output horse.jpg 'https://th-thumbnailer.cdn-si-edu.com/aZINl-wLtWrRfYD9ni4WU3STuDg=/fit-in/1600x0/filters:focal(3008x2005:3009x2006)/https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/6b/c3/6bc305cb-95dd-4e22-b45b-108c6e218200/gettyimages-1144833913.jpg'
 ```
 
@@ -44,19 +35,21 @@ input_image
 ```
 
 ```{code-cell} ipython3
-sd.latents_to_pil(sd.add_noise_to_image(input_image,50,40,42))[0]
+# visualize adding noise to the image
+sd.latents_to_pil(sd.add_noise_to_image(input_image, 50, 40, seed=42))[0]
 ```
 
 ```{code-cell} ipython3
-def one_step(prompt = ["a horse"], seed=42, sampling_step = 46, guidance_scale=7.5):
+num_inference_steps = 50
+def one_step(prompt = ["a horse"], seed=42, sampling_step = 20, guidance_scale=7.5):
     # Prep text
     text_input, text_embeddings = sd.embed_text(prompt)
     batch_size = text_embeddings.shape[0]
     uncond_input, uncond_embeddings = sd.embed_text([""] * batch_size)
     text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
-    latents = sd.add_noise_to_image(input_image, 50, sampling_step, seed)
+    latents = sd.add_noise_to_image(input_image, num_inference_steps, sampling_step, seed)
     
-    t = scheduler.timesteps[sampling_step]
+    t = sd.scheduler.timesteps[sampling_step]
     
     latents, noise_pred = sd.diffusion_step(latents, text_embeddings, t, guidance_scale)
     
@@ -65,17 +58,17 @@ def one_step(prompt = ["a horse"], seed=42, sampling_step = 46, guidance_scale=7
 
 ```{code-cell} ipython3
 noises1 = []
-for i in range(40):
-    noise = one_step(prompt = ["a horse"], guidance_scale=10, seed=i*100, sampling_step=30)
+for i in range(10):
+    noise = one_step(prompt = ["a horse"], guidance_scale=10, seed=i*100, sampling_step=25)
     noises1.append(noise[0])
 noises1 = torch.stack(noises1)
 ```
 
 ```{code-cell} ipython3
 noises2 = []
-for i in range(40):
-    noise = one_step(prompt = ["a zebra"], guidance_scale=10, seed=i*100, sampling_step=30)
-    noises2.append(noise[0])
+for i in range(10):
+    noise = one_step(prompt = ["a zebra"], guidance_scale=10, seed=i*100, sampling_step=25)
+    noises2.append(noise[0]) 
 noises2 = torch.stack(noises2)
 ```
 
@@ -107,7 +100,7 @@ plt.imshow(X1B.astype('uint8'))
 ```
 
 ```{code-cell} ipython3
-X2B = ((X2-X2.min())/(X2.max()-X2.min()) < 0.44).astype('uint8')
+X2B = ((X2-X2.min())/(X2.max()-X2.min()) < 0.32).astype('uint8')
 plt.imshow(X2B)
 ```
 
@@ -132,7 +125,7 @@ input_image
 ```
 
 ```{code-cell} ipython3
-new_img = sd.img_2_img(['a zebra'], input_image,start_step=20, seed=50)[0]
+new_img = sd.img_2_img(['a zebra'], input_image,start_step=25,num_inference_steps=50, seed=50)[0]
 new_img
 ```
 
@@ -142,10 +135,6 @@ Image.fromarray(input_image*(1-MASK) + MASK*np.array(new_img))
 
 ```{code-cell} ipython3
 input_image
-```
-
-```{code-cell} ipython3
-
 ```
 
 ```{code-cell} ipython3
