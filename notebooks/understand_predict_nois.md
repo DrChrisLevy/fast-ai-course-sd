@@ -26,7 +26,6 @@ sd = StableDiffusion()
 
 ```{code-cell} ipython3
 scheduler = sd.scheduler
-batch_size = 1
 unet = sd.unet
 height=512
 width=512
@@ -45,46 +44,21 @@ input_image
 ```
 
 ```{code-cell} ipython3
+sd.latents_to_pil(sd.add_noise_to_image(input_image,50,40,42))[0]
+```
+
+```{code-cell} ipython3
 def one_step(prompt = ["a horse"], seed=42, sampling_step = 46, guidance_scale=7.5):
-    latents = sd.pil_to_latent(input_image)
-    scheduler.set_timesteps(50)
-    noise = torch.randn_like(latents) # Random noise
-    generator = torch.manual_seed(seed) # this is important !!
-    latents = scheduler.add_noise(latents, noise, timesteps=torch.tensor([scheduler.timesteps[sampling_step]]))
-    latents = latents.to(torch_device).float()
-    sd.latents_to_pil(latents.float())[0] # Display
-    
-#     sigma = scheduler.sigmas[sampling_step]
-    t = scheduler.timesteps[sampling_step]
-#     print(sampling_step, t, sigma)
-    
     # Prep text
-    text_input = tokenizer(prompt, padding="max_length", max_length=tokenizer.model_max_length, truncation=True, return_tensors="pt")
-    with torch.no_grad():
-        text_embeddings = text_encoder(text_input.input_ids.to(torch_device))[0]
-    max_length = text_input.input_ids.shape[-1]
-    uncond_input = tokenizer(
-        [""] * batch_size, padding="max_length", max_length=max_length, return_tensors="pt"
-    )
-    with torch.no_grad():
-        uncond_embeddings = text_encoder(uncond_input.input_ids.to(torch_device))[0] 
+    text_input, text_embeddings = sd.embed_text(prompt)
+    batch_size = text_embeddings.shape[0]
+    uncond_input, uncond_embeddings = sd.embed_text([""] * batch_size)
     text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+    latents = sd.add_noise_to_image(input_image, 50, sampling_step, seed)
     
+    t = scheduler.timesteps[sampling_step]
     
-    # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-    latent_model_input = torch.cat([latents] * 2)
-    latent_model_input = scheduler.scale_model_input(latent_model_input, t)
-
-    # predict the noise residual
-    with torch.no_grad():
-        noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
-
-    # perform guidance
-    noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-    noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
-
-    # compute the previous noisy sample x_t -> x_t-1
-    latents = scheduler.step(noise_pred, t, latents).prev_sample
+    latents, noise_pred = sd.diffusion_step(latents, text_embeddings, t, guidance_scale)
     
     return noise_pred
 ```
@@ -133,7 +107,7 @@ plt.imshow(X1B.astype('uint8'))
 ```
 
 ```{code-cell} ipython3
-X2B = ((X2-X2.min())/(X2.max()-X2.min()) < 0.4).astype('uint8')
+X2B = ((X2-X2.min())/(X2.max()-X2.min()) < 0.44).astype('uint8')
 plt.imshow(X2B)
 ```
 
