@@ -113,6 +113,11 @@ diffs2 = [np.array(sd.latents_to_pil(n2[None,:] - n1[None,:])[0]) for n1,n2 in z
 
 ```{code-cell} ipython3
 X1 = np.mean(np.array(diffs1),axis=0).astype('uint8')
+plt.imshow(X1)
+```
+
+```{code-cell} ipython3
+# convert to 1 channel images
 X1 = np.mean(X1,axis=2)
 plt.imshow(X1)
 ```
@@ -125,7 +130,7 @@ plt.imshow(X2)
 
 ```{code-cell} ipython3
 X1B = ((X1-X1.min())/(X1.max()-X1.min()) < 0.4).astype('uint8')
-plt.imshow(((X1-X1.min())/(X1.max()-X1.min()) < 0.4).astype('uint8'))
+plt.imshow(X1B.astype('uint8'))
 ```
 
 ```{code-cell} ipython3
@@ -139,4 +144,8 @@ MASK = np.maximum(X1B,X2B).astype('uint8')
 
 ```{code-cell} ipython3
 plt.imshow(MASK)
+```
+
+```{code-cell} ipython3
+
 ```
