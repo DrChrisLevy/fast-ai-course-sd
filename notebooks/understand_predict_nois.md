@@ -52,14 +52,35 @@ sd.latents_to_pil(latents1)[0]
 ```
 
 ```{code-cell} ipython3
-# lets go in the opposite direction now (denoise)
-_, text_embeddings = sd.embed_text("a zebra")
-batch_size = text_embeddings.shape[0]
-uncond_input, uncond_embeddings = sd.embed_text([""] * batch_size)
-text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+cls = StableDiffusion
+def add_noise_and_predict_one_step(
+    prompt, image, num_inference_steps=50, sampling_step=30, guidance_scale=8, seed=42
+):
+    # add noise
+    latents = cls.add_noise_to_image(image, num_inference_steps, sampling_step, seed)
 
-latents2, noise_pred2 = sd.diffusion_step(latents, text_embeddings, sd.scheduler.timesteps[30], 8)
-sd.latents_to_pil(latents1)[0]
+    # denoise for one step
+    _, text_embeddings = cls.embed_text(prompt)
+    batch_size = text_embeddings.shape[0]
+    uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
+    text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+
+    latents, noise_pred = cls.diffusion_step(
+        latents, text_embeddings, cls.scheduler.timesteps[sampling_step], guidance_scale
+    )
+    return latents, noise_pred
+```
+
+```{code-cell} ipython3
+latents, noise_pred = add_noise_and_predict_one_step( ['a horse'],input_image, num_inference_steps=50, sampling_step=30, guidance_scale=8, seed=42)
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3
@@ -109,13 +130,155 @@ noises2 = torch.stack(noises2)
 ```
 
 ```{code-cell} ipython3
+noises1 = torch.clamp(noises1, torch.mean(noises1) - 3 * torch.std(noises1), torch.mean(noises1) + 3 * torch.std(noises1))
+noises2 = torch.clamp(noises2,  torch.mean(noises2) - 3 * torch.std(noises2), torch.mean(noises2) + 3 * torch.std(noises2))
+
+
+diffs1 = noises1 - noises2
+diffs2 = noises2 - noises1
+
+diffs1 = torch.mean(diffs1, axis=0)[None,:]
+diffs2 = torch.mean(diffs2, axis=0)[None,:]
+
+
+diffs1  = (diffs1 - diffs1.min())/(diffs1.max() - diffs1.min())
+diffs2  = (diffs2 - diffs2.min())/(diffs2.max() - diffs2.min())
+
+diffs1 = diffs1[0] # torch.Size([4, 64, 64])
+diffs2 = diffs2[0] # torch.Size([4, 64, 64])
+
+diffs1 = torch.where(diffs1 > 0.67,1.,0.)
+diffs2 = torch.where(diffs2 > 0.5,1.,0.)
+
+diffs1 = torch.max(diffs1,dim=0)[0]
+diffs2 = torch.max(diffs2,dim=0)[0]
+```
+
+```{code-cell} ipython3
+plt.imshow(diffs2.cpu())
+```
+
+```{code-cell} ipython3
+plt.imshow(diffs1.cpu())
+```
+
+```{code-cell} ipython3
+MASK = np.maximum(diffs1.cpu().numpy(), diffs2.cpu().numpy())
+```
+
+```{code-cell} ipython3
+plt.imshow(MASK)
+```
+
+```{code-cell} ipython3
+MASK = np.array(Image.fromarray(MASK*255).convert('RGB').resize((512,512)))/255.
+plt.imshow(MASK)
+```
+
+```{code-cell} ipython3
+mask = diffs2.cpu().numpy()
+mask = Image.fromarray(np.array([mask,mask,mask]).reshape(64,64,3).astype('uint8')).resize((512,512))
+```
+
+```{code-cell} ipython3
+mask
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+Image.fromarray(mask)
+```
+
+```{code-cell} ipython3
+Image.fromarray(diffs2.cpu().numpy().resize((512,512)).astype('uint8'))
+```
+
+```{code-cell} ipython3
+diffs2.cpu().numpy().copy().resize((512,512)).asty
+```
+
+```{code-cell} ipython3
+diffs2.cpu().numpy().resize((512,512))
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+Image.fromarray(diffs2.cpu().numpy())
+```
+
+```{code-cell} ipython3
+Image.fromarray(diffs2.cpu().numpy()).resize((512, 512))
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+mask_array = latent_mask.max(1).values.detach().cpu().reshape(64,64).numpy()
+mask = Image.fromarray(mask_array).resize((512, 512))
+mask_inv = Image.fromarray(~mask_array).resize((512, 512))
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
 diffs1 = [np.array(sd.latents_to_pil(n1[None,:] - n2[None,:])[0]) for n1,n2 in zip(noises1,noises2)]
 diffs2 = [np.array(sd.latents_to_pil(n2[None,:] - n1[None,:])[0]) for n1,n2 in zip(noises1,noises2)]
 ```
 
 ```{code-cell} ipython3
+import seaborn as sns
+sns.distplot(noises2[0].flatten().cpu())
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
 X1 = np.mean(np.array(diffs1),axis=0).astype('uint8')
 plt.imshow(X1)
+```
+
+```{code-cell} ipython3
+X1.shape
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3
@@ -179,10 +342,14 @@ MASK = np.array([MASK,MASK,MASK]).transpose(1,2,0)
 ```
 
 ```{code-cell} ipython3
-new_img = sd.img_2_img(['a zebra'], input_image,start_step=30,num_inference_steps=50, seed=42)[0]
+new_img = sd.img_2_img(['a zebra'], input_image, start_step=30,num_inference_steps=50, seed=42)[0]
 new_img
 ```
 
 ```{code-cell} ipython3
 Image.fromarray(input_image*(1-MASK) + MASK*np.array(new_img))
+```
+
+```{code-cell} ipython3
+
 ```
