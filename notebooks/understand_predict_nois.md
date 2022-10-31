@@ -35,10 +35,6 @@ input_image
 ```
 
 ```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
 noises1 = []
 for i in range(10):
     _, noise_pred1 = sd.add_noise_and_predict_one_step(["a horse"], input_image, 50, 30, 10, seed=(i+1)*100)
