@@ -91,6 +91,24 @@ class StableDiffusion:
         return latents, noise_pred
 
     @classmethod
+    def add_noise_and_predict_one_step(
+        cls, prompt, image, num_inference_steps=50, sampling_step=30, guidance_scale=8, seed=None
+    ):
+        # add noise
+        latents = cls.add_noise_to_image(image, num_inference_steps, sampling_step, seed)
+
+        # denoise for one step
+        _, text_embeddings = cls.embed_text(prompt)
+        batch_size = text_embeddings.shape[0]
+        uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
+        text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+
+        latents, noise_pred = cls.diffusion_step(
+            latents, text_embeddings, cls.scheduler.timesteps[sampling_step], guidance_scale
+        )
+        return latents, noise_pred
+
+    @classmethod
     def diffusion_loop(cls, text_embeddings, num_inference_steps=30, guidance_scale=7.5, seed=None):
         batch_size = text_embeddings.shape[0]
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
