@@ -183,8 +183,8 @@ plt.imshow(MASK)
 ```
 
 ```{code-cell} ipython3
-new_img = sd.img_2_img(["walter white standing in a field"], input_image, 
-                       start_step=20, num_inference_steps=50, seed=10, 
+new_img = sd.img_2_img(["walter white face standing in a field wearing a black tshirt with a skeleton"], input_image, 
+                       start_step=39, num_inference_steps=100, seed=10, 
                        guidance_scale=8)[0]
 Image.fromarray((input_image*(1-MASK) + MASK*np.array(new_img)).astype('uint8'))
 ```
