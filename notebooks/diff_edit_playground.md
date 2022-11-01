@@ -164,7 +164,7 @@ new_img = sd.img_2_img(["eagle"], input_image,
 Image.fromarray((input_image*(1-MASK) + MASK*np.array(new_img)).astype('uint8'))
 ```
 
-## Breaking Bad
+## Jesse 2 Walter
 
 ```{code-cell} ipython3
 !curl --output input_image.jpg 'https://cdn.wionews.com/sites/default/files/2022/08/27/290896-aaron-paul-jesse-pinkman.PNG'
@@ -187,8 +187,4 @@ new_img = sd.img_2_img(["walter white face standing in a field wearing a black t
                        start_step=39, num_inference_steps=100, seed=10, 
                        guidance_scale=8)[0]
 Image.fromarray((input_image*(1-MASK) + MASK*np.array(new_img)).astype('uint8'))
-```
-
-```{code-cell} ipython3
-
 ```
