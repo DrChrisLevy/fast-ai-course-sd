@@ -3,7 +3,6 @@ Progressive Distillation for Fast Sampling of Diffusion Models
 - read this paper 
 - Jeremy doing a walk through of this paper to start the lesson
 - teacher model and student model
-- Check out Jonathan paper on this
 
 On distillation of Guided Diffusion Models
 - explains at a high level
@@ -11,16 +10,12 @@ On distillation of Guided Diffusion Models
 
 Imagic: Text-Based Real Image Editing with Diffusion Models
 - explains at a high level
-- just came out !
 - use the Google Model but could probably use Stable Diffusion etc.
 
 ## Back to Notebooks
 
-For showing those reduced noise images through out the inference pipeline you can use callbacks in the pipeline.
-
 - Talking about the stable_diffusion notebook again. Stuff I know from last week.
 	- `.half()` converts to float16
-	- does not like the wording timesteps. Just think of iterations.
 - `shfit m` for merging cells in notebook together. NICE! Learned a new trick.
 - Jeremy talking about experiment with code line by line. Understanding it. Seeing what it does.
 	- we should experiment with it
@@ -58,4 +53,3 @@ BUCKLE UP! Going to need Patience!
 - Try implementing negative prompts, image2image, i.e. one of the tricks without using the HF PipeLIne class to do it but just using the building  blocks of the 3 main models (Unet, CLIP, VAE) and the schedulers and the diffusion loop etc. 
 - Go over itertools sttuff i.e. `list(iter(lambda: list(islice(it, 28)), []))`
 - go over the first matrix mult notebook that Jeremy started today.
-- I want to clone the course repo and play with the code. So I may want to add my own notes and things. But then the main repo will keep being updated. Should we fork it? Are we going to be using nb-dev?

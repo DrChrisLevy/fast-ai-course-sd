@@ -11,9 +11,6 @@ from torchvision import transforms as tfms
 # Supress some unnecessary warnings when loading the CLIPTextModel
 logging.set_verbosity_error()
 
-# Set device
-torch_device = "cuda" if torch.cuda.is_available() else "cpu"
-
 
 class StableDiffusion:
     vae = None
@@ -21,6 +18,7 @@ class StableDiffusion:
     text_encoder = None
     unet = None
     scheduler = None
+    torch_device = "cuda" if torch.cuda.is_available() else "cpu"
 
     height = 512
     width = 512
@@ -29,16 +27,16 @@ class StableDiffusion:
         if StableDiffusion.vae is None:
             StableDiffusion.vae = AutoencoderKL.from_pretrained(
                 "CompVis/stable-diffusion-v1-4", subfolder="vae"
-            ).to(torch_device)
+            ).to(StableDiffusion.torch_device)
             StableDiffusion.tokenizer = CLIPTokenizer.from_pretrained(
                 "openai/clip-vit-large-patch14"
             )
             StableDiffusion.unet = UNet2DConditionModel.from_pretrained(
                 "CompVis/stable-diffusion-v1-4", subfolder="unet"
-            ).to(torch_device)
+            ).to(StableDiffusion.torch_device)
             StableDiffusion.text_encoder = CLIPTextModel.from_pretrained(
                 "openai/clip-vit-large-patch14"
-            ).to(torch_device)
+            ).to(StableDiffusion.torch_device)
             StableDiffusion.scheduler = LMSDiscreteScheduler(
                 beta_start=0.00085,
                 beta_end=0.012,
@@ -53,8 +51,25 @@ class StableDiffusion:
             text, padding="max_length", max_length=max_length, truncation=True, return_tensors="pt",
         )
         with torch.no_grad():
-            text_embeddings = cls.text_encoder(text_input.input_ids.to(torch_device))[0]
+            text_embeddings = cls.text_encoder(text_input.input_ids.to(cls.torch_device))[0]
         return text_input, text_embeddings
+
+    @classmethod
+    def add_noise_to_latents(cls, latents, num_inference_steps=50, sampling_step=40, seed=42):
+        cls.scheduler.set_timesteps(num_inference_steps)
+        if seed is not None:
+            torch.manual_seed(seed)
+        noise = torch.randn_like(latents)
+        latents = cls.scheduler.add_noise(
+            latents, noise, timesteps=torch.tensor([cls.scheduler.timesteps[sampling_step]])
+        )
+        latents = latents.to(cls.torch_device).float()
+        return latents
+
+    @classmethod
+    def add_noise_to_image(cls, image, num_inference_steps=50, sampling_step=40, seed=42):
+        latents = cls.pil_to_latent(image)
+        return cls.add_noise_to_latents(latents, num_inference_steps, sampling_step, seed)
 
     @classmethod
     def diffusion_step(cls, latents, text_embeddings, t, guidance_scale):
@@ -73,7 +88,25 @@ class StableDiffusion:
 
         # compute the previous noisy sample x_t -> x_t-1
         latents = cls.scheduler.step(noise_pred, t, latents).prev_sample
-        return latents
+        return latents, noise_pred
+
+    @classmethod
+    def add_noise_and_predict_one_step(
+        cls, prompt, image, num_inference_steps=50, sampling_step=30, guidance_scale=8, seed=None
+    ):
+        # add noise
+        latents = cls.add_noise_to_image(image, num_inference_steps, sampling_step, seed)
+
+        # denoise for one step
+        _, text_embeddings = cls.embed_text(prompt)
+        batch_size = text_embeddings.shape[0]
+        uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
+        text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+
+        latents, noise_pred = cls.diffusion_step(
+            latents, text_embeddings, cls.scheduler.timesteps[sampling_step], guidance_scale
+        )
+        return latents, noise_pred
 
     @classmethod
     def diffusion_loop(cls, text_embeddings, num_inference_steps=30, guidance_scale=7.5, seed=None):
@@ -81,22 +114,15 @@ class StableDiffusion:
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
-        # Prep Scheduler
+        # start with noisy random latent
+        latents = torch.zeros((batch_size, 4, cls.height // 8, cls.width // 8))
         cls.scheduler.set_timesteps(num_inference_steps)
-
-        # Prep latents
-        generator = torch.manual_seed(seed) if seed else None
-        latents = torch.randn(
-            (batch_size, cls.unet.in_channels, cls.height // 8, cls.width // 8),
-            generator=generator,
-        )
-        latents = latents.to(torch_device)
-        latents = latents * cls.scheduler.init_noise_sigma
+        latents = cls.add_noise_to_latents(latents, num_inference_steps, 0, seed)
 
         # Loop
         with autocast("cuda"):
             for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
-                latents = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
+                latents, _ = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
 
         return cls.latents_to_pil(latents)
 
@@ -129,24 +155,13 @@ class StableDiffusion:
         uncond_input, uncond_embeddings = cls.embed_text([""] * batch_size)
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
-        # Prep Scheduler (setting the number of inference steps)
-        cls.scheduler.set_timesteps(num_inference_steps)
-
-        # Prep latents (noising appropriately for start_step)
-        if seed:
-            torch.manual_seed(seed)
-        encoded = cls.pil_to_latent(image)
-        noise = torch.randn_like(encoded)
-        latents = cls.scheduler.add_noise(
-            encoded, noise, timesteps=torch.tensor([cls.scheduler.timesteps[start_step]]),
-        )
-        latents = latents.to(torch_device).float()
+        latents = cls.add_noise_to_image(image, num_inference_steps, start_step, seed)
 
         # Loop
         with autocast("cuda"):
             for i, t in tqdm(enumerate(cls.scheduler.timesteps)):
                 if i > start_step:  # << This is the only modification to the loop we do
-                    latents = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
+                    latents, _ = cls.diffusion_step(latents, text_embeddings, t, guidance_scale)
 
         return cls.latents_to_pil(latents)
 
@@ -155,7 +170,7 @@ class StableDiffusion:
         # Single image -> single latent in a batch (so size 1, 4, 64, 64)
         with torch.no_grad():
             latent = cls.vae.encode(
-                tfms.ToTensor()(input_im).unsqueeze(0).to(torch_device) * 2 - 1
+                tfms.ToTensor()(input_im).unsqueeze(0).to(cls.torch_device) * 2 - 1
             )  # Note scaling
         return 0.18215 * latent.latent_dist.sample()
 
