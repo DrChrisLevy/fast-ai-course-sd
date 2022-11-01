@@ -7,7 +7,6 @@ Modify for your pem key and IP:
 ssh -i "lambda-labs-key.pem" ubuntu@<ip> -L 8888:localhost:8888
 ```
 
-
 ## clone repo
 ```
 git clone https://github.com/DrChrisLevy/fast-ai-course-sd.git
