@@ -80,15 +80,18 @@
 	- those broadcasting rules are really important!
 
 ## Calculus
-
+- you use to teach that but would be good to refresh on the Matrix Calc stuff.
 
 
 ## TODO 
 - rewrite l2 norm euclidean distance with ein sum notation
-- implement some thing like kmeans, or some clustering, faiss, dbscan, LSH, etc. but on gpu
+- implement k-means clustering, dbscan, locality sensitive hashing, or some other clustering, fast nearest neighbors, or similar algorithm of your choice, on the GPU. Check if your version is faster than a pure python or CPU version.
+- Invent a new meanshift algorithm which picks only the closest points, to avoid quadratic time.
 - make an animation
 - go over those notebooks
 - [essence of Calculus by 3Blue1Brown](https://www.youtube.com/watch?v=WUvTyaaNkzM)
 - [chain rule intuition](https://webspace.ship.edu/msrenault/geogebracalculus/derivative_intuitive_chain_rule.html)
 - [The Matrix Calculus You Need For Deep Learning](https://explained.ai/matrix-calculus/)
-- 
+- I havent learned the Einsum notation yet. Go back and study that part.
+- Go back and study the Cuda section of the 01 mat mul notebook
+- [The spelled-out intro to neural networks and backpropagation: building micrograd](https://www.youtube.com/watch?v=VMj-3S1tku0) by Andrej Karpathy
