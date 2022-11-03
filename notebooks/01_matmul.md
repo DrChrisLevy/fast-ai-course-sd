@@ -494,6 +494,311 @@ mat_mul(m1,m2)
 
 ## Broadcasting
 
+Broadcasting a scalar over a vector or matrix is quite easy to understand:
+
+```{code-cell} ipython3
+x
+```
+
+```{code-cell} ipython3
+2 * x
+```
+
+```{code-cell} ipython3
+2 + x # pure math would lose their mind over this. Welcome to broadcasting :)
+```
+
+```{code-cell} ipython3
+c = torch.tensor([1.,2.,3.])
+c
+```
+
+```{code-cell} ipython3
+c + x
+```
+
+```{code-cell} ipython3
+c.shape,x.shape
+```
+
+```{code-cell} ipython3
+c * x
+```
+
+The smaller one `c` is "broadcast" across the larger one `x`.
+Its like we made `c` to have shape (2,3) and then added.
+But it does memory optimized. It does not actually copy it.
+
+```{code-cell} ipython3
+t = c.expand_as(x)
+```
+
+```{code-cell} ipython3
+t.shape
+```
+
+This is very cool!
+
+```{code-cell} ipython3
+t.storage()
+```
+
+```{code-cell} ipython3
+t.stride(), t.shape
+```
+
+```{code-cell} ipython3
+c
+```
+
+```{code-cell} ipython3
+c.unsqueeze(0), c[None,:] # same thing
+```
+
+```{code-cell} ipython3
+c.shape, c[None,:].shape
+```
+
+You can always skip trailing ':'s. And '...' means '*all preceding dimensions*'
+
+```{code-cell} ipython3
+c[None] # add unit axis at the start
+```
+
+```{code-cell} ipython3
+c[...,None] # add unit axis at the end
+```
+
+```{code-cell} ipython3
+m
+```
+
+```{code-cell} ipython3
+c.expand_as(m)
+```
+
+```{code-cell} ipython3
+c.shape, m.shape
+```
+
+```{code-cell} ipython3
+c+m
+```
+
+## Broadcast Rules
+
+```{code-cell} ipython3
+c = 10 * c
+c
+```
+
+```{code-cell} ipython3
+c[:, None]
+```
+
+```{code-cell} ipython3
+c[None, :]
+```
+
+Can we multiply these?
+
+```{code-cell} ipython3
+c[None,:].shape, c[:,None].shape
+```
+
+When operating on two arrays/tensors, Numpy/PyTorch compares their shapes element-wise. It starts with the **trailing dimensions**, and works its way forward. Two dimensions are **compatible** when
+
+- they are equal, or
+- one of them is 1, in which case that dimension is broadcasted to make it the same size
+
+Arrays do not need to have the same number of dimensions.
+
+```{code-cell} ipython3
+c[:,None].expand_as(m)
+```
+
+```{code-cell} ipython3
+c[None,:].expand_as(m)
+```
+
+```{code-cell} ipython3
+c[:,None] * c[None,:] # you see, it first did ^^^ then multiplied element wise. In a optimized fashion
+```
+
+Arrays do not need to have the same number of dimensions. For example, if you have a `256*256*3` array of RGB values, and you want to scale each color in the image by a different value, you can multiply the image by a one-dimensional array with 3 values. Lining up the sizes of the trailing axes of these arrays according to the broadcast rules, shows that they are compatible:
+
+    Image  (3d array): 256 x 256 x 3
+    Scale  (1d array):             3
+    Result (3d array): 256 x 256 x 3
+
+The [numpy documentation](https://docs.scipy.org/doc/numpy-1.13.0/user/basics.broadcasting.html#general-broadcasting-rules) includes several examples of what dimensions can and can not be broadcast together.
+
++++
+
+Broadcasting provides a convenient way of taking the outer product (or any other outer operation) of two arrays. The following example shows an outer addition operation of two 1-d arrays:
+
+```{code-cell} ipython3
+a = np.array([0.0, 10.0, 20.0, 30.0])
+b = np.array([1.0, 2.0, 3.0])
+```
+
+```{code-cell} ipython3
+a.shape
+```
+
+```{code-cell} ipython3
+b.shape
+```
+
+```{code-cell} ipython3
+a[:,None].shape
+```
+
+```{code-cell} ipython3
+a[:,None]+ b
+```
+
+## Matmul with broadcasting
+
+for each row of m1 we want to to something with it and every column of m2.
+Wouldnt it be nice if we could just have one loop for the rows of m1.
+
+```{code-cell} ipython3
+row = m1[0,:]
+columns = m2
+```
+
+```{code-cell} ipython3
+row.shape
+```
+
+```{code-cell} ipython3
+columns.shape
+```
+
+```{code-cell} ipython3
+row[:, None].shape
+```
+
 ```{code-cell} ipython3
 
 ```
+
+```{code-cell} ipython3
+def mat_mul(m1,m2):
+    ar,ac = m1.shape
+    br,bc = m2.shape
+    res = torch.zeros((ar,bc))
+    for i in range(ar):
+        res[i] = (m1[i, :, None] * m2).sum(dim=0) # wow its like magic. Probably have to write this out on a piece of paper with much smaller example
+    return res
+mat_mul(m1,m2)
+```
+
+```{code-cell} ipython3
+%timeit mat_mul(m1,m2)
+```
+
+## Einstein summation
+
+**TODO**: I basically skipped this and need to come back to it.
+
+[Einstein summation](https://ajcr.net/Basic-guide-to-einsum/) ([`einsum`](https://numpy.org/doc/stable/reference/generated/numpy.einsum.html)) is a compact representation for combining products and sums in a general way. The key rules are:
+
+- Repeating letters between input arrays means that values along those axes will be multiplied together.
+- Omitting a letter from the output means that values along that axis will be summed.
+
+```{code-cell} ipython3
+m1.shape,m2.shape
+```
+
+```{code-cell} ipython3
+# c[i,j] += a[i,k] * b[k,j]
+# c[i,j] = (a[i,:] * b[:,j]).sum()
+mr = torch.einsum('ik,kj->ikj', m1, m2)
+mr.shape
+```
+
+```{code-cell} ipython3
+mr.sum(1)
+```
+
+```{code-cell} ipython3
+torch.einsum('ik,kj->ij', m1, m2)
+```
+
+```{code-cell} ipython3
+def matmul(a,b): return torch.einsum('ik,kj->ij', a, b)
+```
+
+```{code-cell} ipython3
+%timeit -n 5 _=matmul(x_train, weights)
+```
+
+## Pytorch Matrix Mult OP
+
+```{code-cell} ipython3
+m1 @ m2
+```
+
+```{code-cell} ipython3
+%timeit -n 10 torch.matmul(m1,m2)
+```
+
+## CUDA
+
+**TODO**: go back and study this part again b/c I did not spend a lot of time on it.
+
+```{code-cell} ipython3
+def matmul(grid, a,b,c):
+    i,j = grid
+    if i < c.shape[0] and j < c.shape[1]:
+        tmp = 0.
+        for k in range(a.shape[1]):
+            tmp += a[i, k] * b[k, j]
+        c[i,j] = tmp
+```
+
+```{code-cell} ipython3
+res = torch.zeros(ar, bc)
+matmul((0,0), m1, m2, res)
+res
+```
+
+```{code-cell} ipython3
+def launch_kernel(kernel, grid_x, grid_y, *args, **kwargs):
+    for i in range(grid_x):
+        for j in range(grid_y): kernel((i,j), *args, **kwargs)
+```
+
+```{code-cell} ipython3
+res = torch.zeros(ar, bc)
+launch_kernel(matmul, ar, bc, m1, m2, res)
+res
+```
+
+```{code-cell} ipython3
+from numba import cuda
+```
+
+```{code-cell} ipython3
+def matmul(grid, a,b,c):
+    i,j = grid
+    if i < c.shape[0] and j < c.shape[1]:
+        tmp = 0.
+        for k in range(a.shape[1]): tmp += a[i, k] * b[k, j]
+        c[i,j] = tmp
+```
+
+```{code-cell} ipython3
+@cuda.jit
+def matmul(a,b,c):
+    i, j = cuda.grid(2)
+    if i < c.shape[0] and j < c.shape[1]:
+        tmp = 0.
+        for k in range(a.shape[1]): tmp += a[i, k] * b[k, j]
+        c[i,j] = tmp
+```
+
+go back and see the NB. Never finished this...
+https://github.com/fastai/course22p2/blob/master/nbs/01_matmul.ipynb
