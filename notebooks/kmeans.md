@@ -16,6 +16,10 @@ kernelspec:
 import torch
 ```
 
+# Pairwise Distances
+
++++
+
 We need some functionality to find the distance between a set of vectors
 in one tensor with the set of vectors in another tensor.
 
@@ -111,8 +115,80 @@ def square_distance(Xb, Xq):
     return (Xb[:, None] - Xq[None]).square().sum(2)
 ```
 
-```{code-cell} ipython3
+# Create Some Fake Cluster Data
 
+```{code-cell} ipython3
+n_clusters=6
+n_samples =250
+
+centroids_truth = torch.rand(n_clusters, 2)*70-35
+
+from matplotlib import pyplot as plt
+from torch.distributions.multivariate_normal import MultivariateNormal
+from torch import tensor
+
+def sample(m): return MultivariateNormal(m, torch.diag(tensor([5.,5.]))).sample((n_samples,))
+
+slices = [sample(c) for c in centroids_truth]
+data = torch.cat(slices)
+data.shape
+
+
+def plot_data(centroids_truth, data, n_samples, ax=None):
+    if ax is None: _,ax = plt.subplots()
+    for i, centroid in enumerate(centroids_truth):
+        samples = data[i*n_samples:(i+1)*n_samples]
+        ax.scatter(samples[:,0], samples[:,1], s=1)
+        ax.plot(*centroid, markersize=10, marker="x", color='k', mew=5)
+        ax.plot(*centroid, markersize=5, marker="x", color='m', mew=2)
+
+plot_data(centroids_truth, data, n_samples)
+```
+
+```{code-cell} ipython3
+k = 6
+centroids = data[random.sample(range(len(data)),6)] # this random initialization method is not very good!
+plot_data(centroids, data, n_samples)
+```
+
+```{code-cell} ipython3
+dists = square_distance(data, centroids)
+dists
+```
+
+```{code-cell} ipython3
+assigned_clusters = torch.argmin(dists, dim=1)
+print(assigned_clusters.shape)
+assigned_clusters
+```
+
+```{code-cell} ipython3
+for j in range(k): # TODO how to do without a for loop
+    centroids[j] = data[assigned_clusters == j].mean(dim=0)
+centroids
+```
+
+```{code-cell} ipython3
+plot_data(centroids, data, n_samples)
+```
+
+```{code-cell} ipython3
+def kmeans(data, k, iterations=5):
+    # initialize random centroids
+    centroids = data[random.sample(range(0, len(data)), k), :]
+    
+    for i in range(iterations):
+        dists = square_distance(data, centroids)
+        assigned_clusters = torch.argmin(dists, dim=1)
+        
+        for j in range(k): # TODO how to do without a for loop
+            centroids[j] = data[assigned_clusters == j].mean(dim=0)
+    return centroids, assigned_clusters
+```
+
+```{code-cell} ipython3
+centroids, assigned_clusters = kmeans(data, 6, 5) 
+plot_data(centroids, data, n_samples)
 ```
 
 ```{code-cell} ipython3
