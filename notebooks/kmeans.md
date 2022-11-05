@@ -120,6 +120,7 @@ def square_distance(Xb, Xq):
 ```{code-cell} ipython3
 n_clusters=6
 n_samples =250
+torch.manual_seed(42)
 
 centroids_truth = torch.rand(n_clusters, 2)*70-35
 
@@ -145,10 +146,36 @@ def plot_data(centroids_truth, data, n_samples, ax=None):
 plot_data(centroids_truth, data, n_samples)
 ```
 
+## Initialization
+
+For kmeans to work well we need a good random initialization 
+for the centroids. 
+
+One option is to choose $k$ random points from the dataset.
+Run this cell multiple times to see that this method
+is quite volatile. Often the initially random selected centroids
+will be from the same cluster.
+
 ```{code-cell} ipython3
 k = 6
 centroids = data[random.sample(range(len(data)),6)] # this random initialization method is not very good!
 plot_data(centroids, data, n_samples)
+```
+
+[kmeans++](https://en.wikipedia.org/wiki/K-means%2B%2B) is a better initialization method.
+
+- Choose one centroids uniformly at random among the data
+For each data point x not chosen yet, compute D(x), the distance between x and the nearest center that has already been chosen.
+Choose one new data point at random as a new center, using a weighted probability distribution where a point x is chosen with probability proportional to D(x)2.
+Repeat Steps 2 and 3 until k centers have been chosen.
+Now that the initial centers have been chosen, proceed using standard k-means clustering.
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3
