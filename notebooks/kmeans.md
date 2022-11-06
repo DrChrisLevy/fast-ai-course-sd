@@ -101,7 +101,7 @@ print(Xb[None].shape)
 (Xq[:, None] - Xb[None]).square().sum(2)
 ```
 
-What is this magic??
+What is this magic?? Broadcasting!
 
 ```{code-cell} ipython3
 assert torch.equal(ground_truth(Xq, Xb), (Xq[:, None] - Xb[None]).square().sum(2))
@@ -120,7 +120,7 @@ def square_distance(Xb, Xq):
 
 ```{code-cell} ipython3
 n_clusters=6
-n_samples =250
+n_samples =2500
 torch.manual_seed(42)
 
 centroids_truth = torch.rand(n_clusters, 2)*70-35
@@ -147,7 +147,9 @@ def plot_data(centroids_truth, data, n_samples, ax=None):
 plot_data(centroids_truth, data, n_samples)
 ```
 
-## Initialization
+# Initialization of Centroids
+
+## Random Initialization
 
 For kmeans to work well we need a good random initialization 
 for the centroids. 
@@ -163,34 +165,110 @@ centroids = data[random.sample(range(len(data)),6)] # this random initialization
 plot_data(centroids, data, n_samples)
 ```
 
+## kmeans++ (better random initialization)
+
++++
+
 [kmeans++](https://en.wikipedia.org/wiki/K-means%2B%2B) is a better initialization method.
+The idea is to spread out the initial centroids as much as possible.
 
-- Choose one centroids uniformly at random among the data
-For each data point x not chosen yet, compute D(x), the distance between x and the nearest center that has already been chosen.
-Choose one new data point at random as a new center, using a weighted probability distribution where a point x is chosen with probability proportional to D(x)2.
-Repeat Steps 2 and 3 until k centers have been chosen.
-Now that the initial centers have been chosen, proceed using standard k-means clustering.
+- pick a centroid at random from the dataset.
+- compute the distance between each data point and the centroid.
+- sample another point from the dataset in such a way that a point that is further away from the first centroid has a higher probability of being selected. Now there are two centroids selected.
+- Now compute the distance between each point and the nearest centroid. Similarly, pick another point randomly from the dataset using weighted random sampling (based on the distance from the data point to the nearest centroid).
+- Continue until you have $k$ centroids.
 
 ```{code-cell} ipython3
-
+centroids = data[random.sample(range(len(data)),1)] # pick first point at random
 ```
 
 ```{code-cell} ipython3
-
+plot_data(centroids, data, n_samples)
 ```
+
+```{code-cell} ipython3
+dists_to_centroids = square_distance(data, centroids)
+dists_to_centroids = dists_to_centroids.min(dim=1)[0] # get the distance to nearest centroid
+weights = (dists_to_centroids / dists_to_centroids.max().square())
+weights
+```
+
+```{code-cell} ipython3
+from torch.utils.data import WeightedRandomSampler
+```
+
+```{code-cell} ipython3
+centroid_idx = list(WeightedRandomSampler(weights, 1, replacement=False))[0]
+centroid_idx
+```
+
+```{code-cell} ipython3
+centroids = torch.vstack([centroids, data[centroid_idx]])
+```
+
+```{code-cell} ipython3
+plot_data(centroids, data, n_samples)
+```
+
+```{code-cell} ipython3
+dists_to_centroids = square_distance(data, centroids)
+dists_to_centroids = dists_to_centroids.min(dim=1)[0] # get the distance to nearest
+weights = (dists_to_centroids / dists_to_centroids.max().square())
+centroid_idx = list(WeightedRandomSampler(weights, 1, replacement=False))[0]
+centroids = torch.vstack([centroids, data[centroid_idx]])
+plot_data(centroids, data, n_samples)
+```
+
+And so on...
+
+Lets wrap the logic for initialization in a single function:
+
+```{code-cell} ipython3
+def initialize_centroids(data, k):
+    centroids = data[random.sample(range(len(data)),1)] # pick first point at random
+    
+    for i in range(k-1): # pick remaining centroids
+        dists_to_centroids = square_distance(data, centroids)
+        dists_to_centroids = dists_to_centroids.min(dim=1)[0] # get the distance to nearest
+        weights = (dists_to_centroids / dists_to_centroids.max().square())
+        centroid_idx = list(WeightedRandomSampler(weights, 1, replacement=False))[0]
+        centroids = torch.vstack([centroids, data[centroid_idx]])
+    
+    return centroids
+    
+```
+
+```{code-cell} ipython3
+centroids = initialize_centroids(data, k)
+print(centroids)
+plot_data(centroids, data, n_samples)
+```
+
+## Iterations for Updating Centroids
+
+Now we have the initial centroids selected.
+Next we proceed with the kmeans implementation:
+
+- compute distances between data points and centroids
+- map each data point to nearest centroid
+- update centroids based on the data points in each cluster
+- repeat until it stabilizes 
+
+Lets go through one iteration here to show how it works.
 
 ```{code-cell} ipython3
 dists = square_distance(data, centroids)
-dists
+dists # torch.Size([N, k]) holds the distance between each data point and each centroid
 ```
 
 ```{code-cell} ipython3
-assigned_clusters = torch.argmin(dists, dim=1)
+assigned_clusters = torch.argmin(dists, dim=1) # pick the centroid with the smallest distance
 print(assigned_clusters.shape)
 assigned_clusters
 ```
 
 ```{code-cell} ipython3
+# update the centroids by taking the centroid of each cluster
 for j in range(k): # TODO how to do without a for loop
     centroids[j] = data[assigned_clusters == j].mean(dim=0)
 centroids
@@ -200,11 +278,16 @@ centroids
 plot_data(centroids, data, n_samples)
 ```
 
+Okay, lets wrap it all up in one function.
+
 ```{code-cell} ipython3
-def kmeans(data, k, iterations=5):
-    # initialize random centroids
-    centroids = data[random.sample(range(0, len(data)), k), :]
+def kmeans(data, k, iterations=2):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # initialize centroids
+    centroids = initialize_centroids(data, k).to(device)
+    data = data.to(device)
     
+    # update centroids though iteration
     for i in range(iterations):
         dists = square_distance(data, centroids)
         assigned_clusters = torch.argmin(dists, dim=1)
@@ -216,7 +299,15 @@ def kmeans(data, k, iterations=5):
 
 ```{code-cell} ipython3
 centroids, assigned_clusters = kmeans(data, 6, 5) 
-plot_data(centroids, data, n_samples)
+plot_data(centroids.cpu(), data.cpu(), n_samples)
+```
+
+```{code-cell} ipython3
+%timeit centroids, assigned_clusters = kmeans(data, 6, 5)
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3
