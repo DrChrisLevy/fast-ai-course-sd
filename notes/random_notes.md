@@ -95,3 +95,4 @@
 - I havent learned the Einsum notation yet. Go back and study that part.
 - Go back and study the Cuda section of the 01 mat mul notebook
 - [The spelled-out intro to neural networks and backpropagation: building micrograd](https://www.youtube.com/watch?v=VMj-3S1tku0) by Andrej Karpathy
+- [Einsum](https://ajcr.net/Basic-guide-to-einsum/)
