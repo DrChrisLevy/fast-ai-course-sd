@@ -14,6 +14,7 @@ kernelspec:
 
 ```{code-cell} ipython3
 import torch
+import random
 ```
 
 # Pairwise Distances
@@ -216,6 +217,10 @@ def kmeans(data, k, iterations=5):
 ```{code-cell} ipython3
 centroids, assigned_clusters = kmeans(data, 6, 5) 
 plot_data(centroids, data, n_samples)
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3
