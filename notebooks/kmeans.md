@@ -126,7 +126,7 @@ def square_distance(Xb, Xq):
 
 ```{code-cell} ipython3
 from sklearn.datasets import make_blobs
-n_samples = 10000000
+n_samples = 1000000
 k = 15
 X, y_true = make_blobs(
     n_samples=n_samples, centers=k, cluster_std=0.3, random_state=42
@@ -146,14 +146,16 @@ data.shape
 ```
 
 ```{code-cell} ipython3
-def plot_data(centroids, data):
+import numpy as np
+
+def plot_data(centroids, nsample=1000):
     fig = plt.figure()
-    ax1 = fig.add_subplot()
+    ax = fig.add_subplot()
     for cluster in range(k):
         cluster_data = y_true == cluster
-        ax1.scatter(X[cluster_data, 0], X[cluster_data, 1], marker=".", s=1, zorder=0)
-    for centroid in centroids:
-        ax1.scatter(centroid[0], centroid[1], marker="*", s=100, zorder=1, color='black')
+        ax.scatter(X[cluster_data, 0][:nsample], X[cluster_data, 1][:nsample], marker=".", s=1, zorder=0)
+    for centroid in centroids.cpu():
+        ax.scatter(centroid[0], centroid[1], marker="*", s=100, zorder=1, color='black')
     plt.show()
 ```
 
@@ -171,7 +173,7 @@ will be from the same cluster.
 
 ```{code-cell} ipython3
 centroids = data[random.sample(range(len(data)),k)].to(device) # this random initialization method is not very good!
-plot_data(centroids.cpu(), data.cpu())
+plot_data(centroids)
 ```
 
 ## kmeans++ (better random initialization)
@@ -192,7 +194,7 @@ centroids = data[random.sample(range(len(data)),1)].to(device) # pick first poin
 ```
 
 ```{code-cell} ipython3
-plot_data(centroids.cpu(), data.cpu())
+plot_data(centroids)
 ```
 
 ```{code-cell} ipython3
@@ -216,7 +218,7 @@ centroids = torch.vstack([centroids, data[centroid_idx]])
 ```
 
 ```{code-cell} ipython3
-plot_data(centroids.cpu(), data.cpu())
+plot_data(centroids)
 ```
 
 ```{code-cell} ipython3
@@ -225,7 +227,7 @@ dists_to_centroids = dists_to_centroids.min(dim=1)[0] # get the distance to near
 weights = (dists_to_centroids / dists_to_centroids.max().square())
 centroid_idx = list(WeightedRandomSampler(weights, 1, replacement=False))[0]
 centroids = torch.vstack([centroids, data[centroid_idx]])
-plot_data(centroids.cpu(), data.cpu())
+plot_data(centroids)
 ```
 
 And so on...
@@ -249,7 +251,7 @@ def initialize_centroids(data, k):
 
 ```{code-cell} ipython3
 centroids = initialize_centroids(data, k)
-plot_data(centroids.cpu(), data.cpu())
+plot_data(centroids)
 ```
 
 ## Iterations for Updating Centroids
@@ -283,7 +285,7 @@ centroids
 ```
 
 ```{code-cell} ipython3
-plot_data(centroids.cpu(), data.cpu())
+plot_data(centroids)
 ```
 
 Okay, lets wrap it all up in one function.
@@ -317,14 +319,24 @@ def kmeans(data, k, iterations=10, init_method=None):
 # random simple initialization
 import time
 ct = time.time()
-centroids, assigned_clusters = kmeans(data, k, 10, init_method='simple') 
+torch.manual_seed(11)
+random.seed(11)
+centroids, assigned_clusters = kmeans(data, k, 0, init_method='simple') 
 print(time.time() - ct)
-plot_data(centroids.cpu(), data.cpu())
+plot_data(centroids)
 ```
 
 ```{code-cell} ipython3
 ct = time.time()
+torch.manual_seed(11)
+random.seed(11)
 centroids, assigned_clusters = kmeans(data, k, 10)
 print(time.time() - ct)
-plot_data(centroids.cpu(), data.cpu())
+plot_data(centroids)
 ```
+
+**TODO**:
+
+- implement batching on GPU for distance computations so entire dataset does not need to use GPU memory
+- run multiple kmeans with different seeds and pick the best result.
+- improve the initialization method.
