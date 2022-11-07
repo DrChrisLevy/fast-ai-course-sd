@@ -126,15 +126,12 @@ def square_distance(Xb, Xq):
 
 ```{code-cell} ipython3
 from sklearn.datasets import make_blobs
-n_samples = 1000000
+n_samples = 10000000
 k = 15
 X, y_true = make_blobs(
     n_samples=n_samples, centers=k, cluster_std=0.3, random_state=42
 )
 X = X[:, ::-1]
-
-
-
 ```
 
 ```{code-cell} ipython3
@@ -330,24 +327,4 @@ ct = time.time()
 centroids, assigned_clusters = kmeans(data, k, 10)
 print(time.time() - ct)
 plot_data(centroids.cpu(), data.cpu())
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
 ```
