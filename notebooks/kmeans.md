@@ -15,6 +15,7 @@ kernelspec:
 ```{code-cell} ipython3
 import torch
 import random
+from matplotlib import pyplot as plt
 ```
 
 # Pairwise Distances
@@ -23,6 +24,9 @@ import random
 
 We need some functionality to find the distance between a set of vectors
 in one tensor with the set of vectors in another tensor.
+Lets set up some simple tensors to test it out.
+The goal is to find the Euclidean distance (or distance squared) between each pair
+of vectors in `Xb` with each vector in `Xq`.
 
 ```{code-cell} ipython3
 Xb =  torch.tensor([[1.,2.,3.],[4.,5.,6.], [7.,8.,9.]])
@@ -34,7 +38,7 @@ Xq, Xb
 ```
 
 ```{code-cell} ipython3
-# simple loop for unit test
+# simple double loop for unit test
 def ground_truth(Xq, Xb):
     distances = torch.zeros((Xq.shape[0],Xb.shape[0]))
     for i in range(len(Xq)):
@@ -58,7 +62,8 @@ print(Xq.shape)
 print(Xb.shape)
 ```
 
-Okay so the 4 and 3 don't match so broadcasting won't work.
+Now lets do it with broadcasting and without the double for loop.
+Okay, so the 4 and 3 don't match so broadcasting won't work.
 So lets make that "4" a "1" in the shape of `Xq`
 
 ```{code-cell} ipython3
@@ -112,6 +117,7 @@ assert torch.equal(ground_truth(Xb, Xq), (Xb[:, None] - Xq[None]).square().sum(2
 ```
 
 ```{code-cell} ipython3
+# broadcasted version of squared Euclidean distance
 def square_distance(Xb, Xq):
     return (Xb[:, None] - Xq[None]).square().sum(2)
 ```
@@ -119,32 +125,39 @@ def square_distance(Xb, Xq):
 # Create Some Fake Cluster Data
 
 ```{code-cell} ipython3
-n_clusters=6
-n_samples =2500
-torch.manual_seed(42)
+from sklearn.datasets import make_blobs
+n_samples = 1000000
+k = 15
+X, y_true = make_blobs(
+    n_samples=n_samples, centers=k, cluster_std=0.3, random_state=42
+)
+X = X[:, ::-1]
 
-centroids_truth = torch.rand(n_clusters, 2)*70-35
 
-from matplotlib import pyplot as plt
-from torch.distributions.multivariate_normal import MultivariateNormal
-from torch import tensor
 
-def sample(m): return MultivariateNormal(m, torch.diag(tensor([5.,5.]))).sample((n_samples,))
+```
 
-slices = [sample(c) for c in centroids_truth]
-data = torch.cat(slices)
+```{code-cell} ipython3
+# get torch tensor
+device = torch.device("cuda") if torch.cuda.is_available() else "cpu"
+data = torch.tensor(X.copy()).to(device)
+data.device
+```
+
+```{code-cell} ipython3
 data.shape
+```
 
-
-def plot_data(centroids_truth, data, n_samples, ax=None):
-    if ax is None: _,ax = plt.subplots()
-    for i, centroid in enumerate(centroids_truth):
-        samples = data[i*n_samples:(i+1)*n_samples]
-        ax.scatter(samples[:,0], samples[:,1], s=1)
-        ax.plot(*centroid, markersize=10, marker="x", color='k', mew=5)
-        ax.plot(*centroid, markersize=5, marker="x", color='m', mew=2)
-
-plot_data(centroids_truth, data, n_samples)
+```{code-cell} ipython3
+def plot_data(centroids, data):
+    fig = plt.figure()
+    ax1 = fig.add_subplot()
+    for cluster in range(k):
+        cluster_data = y_true == cluster
+        ax1.scatter(X[cluster_data, 0], X[cluster_data, 1], marker=".", s=1, zorder=0)
+    for centroid in centroids:
+        ax1.scatter(centroid[0], centroid[1], marker="*", s=100, zorder=1, color='black')
+    plt.show()
 ```
 
 # Initialization of Centroids
@@ -160,9 +173,8 @@ is quite volatile. Often the initially random selected centroids
 will be from the same cluster.
 
 ```{code-cell} ipython3
-k = 6
-centroids = data[random.sample(range(len(data)),6)] # this random initialization method is not very good!
-plot_data(centroids, data, n_samples)
+centroids = data[random.sample(range(len(data)),k)].to(device) # this random initialization method is not very good!
+plot_data(centroids.cpu(), data.cpu())
 ```
 
 ## kmeans++ (better random initialization)
@@ -179,18 +191,18 @@ The idea is to spread out the initial centroids as much as possible.
 - Continue until you have $k$ centroids.
 
 ```{code-cell} ipython3
-centroids = data[random.sample(range(len(data)),1)] # pick first point at random
+centroids = data[random.sample(range(len(data)),1)].to(device) # pick first point at random
 ```
 
 ```{code-cell} ipython3
-plot_data(centroids, data, n_samples)
+plot_data(centroids.cpu(), data.cpu())
 ```
 
 ```{code-cell} ipython3
 dists_to_centroids = square_distance(data, centroids)
 dists_to_centroids = dists_to_centroids.min(dim=1)[0] # get the distance to nearest centroid
 weights = (dists_to_centroids / dists_to_centroids.max().square())
-weights
+weights, weights.device
 ```
 
 ```{code-cell} ipython3
@@ -207,7 +219,7 @@ centroids = torch.vstack([centroids, data[centroid_idx]])
 ```
 
 ```{code-cell} ipython3
-plot_data(centroids, data, n_samples)
+plot_data(centroids.cpu(), data.cpu())
 ```
 
 ```{code-cell} ipython3
@@ -216,7 +228,7 @@ dists_to_centroids = dists_to_centroids.min(dim=1)[0] # get the distance to near
 weights = (dists_to_centroids / dists_to_centroids.max().square())
 centroid_idx = list(WeightedRandomSampler(weights, 1, replacement=False))[0]
 centroids = torch.vstack([centroids, data[centroid_idx]])
-plot_data(centroids, data, n_samples)
+plot_data(centroids.cpu(), data.cpu())
 ```
 
 And so on...
@@ -240,8 +252,7 @@ def initialize_centroids(data, k):
 
 ```{code-cell} ipython3
 centroids = initialize_centroids(data, k)
-print(centroids)
-plot_data(centroids, data, n_samples)
+plot_data(centroids.cpu(), data.cpu())
 ```
 
 ## Iterations for Updating Centroids
@@ -275,18 +286,26 @@ centroids
 ```
 
 ```{code-cell} ipython3
-plot_data(centroids, data, n_samples)
+plot_data(centroids.cpu(), data.cpu())
 ```
 
 Okay, lets wrap it all up in one function.
 
 ```{code-cell} ipython3
-def kmeans(data, k, iterations=2):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def kmeans(data, k, iterations=10, init_method=None):        
     # initialize centroids
-    centroids = initialize_centroids(data, k).to(device)
-    data = data.to(device)
+    if init_method == 'simple':
+        centroids = data[random.sample(range(len(data)),k)] # this random initialization method is not very good!
+    else:
+        centroids = initialize_centroids(data, k)
+    data = data
     
+    if iterations == 0:
+        # for debug and showing initialization without any updates
+        dists = square_distance(data, centroids)
+        assigned_clusters = torch.argmin(dists, dim=1)
+        return centroids, assigned_clusters
+        
     # update centroids though iteration
     for i in range(iterations):
         dists = square_distance(data, centroids)
@@ -298,12 +317,27 @@ def kmeans(data, k, iterations=2):
 ```
 
 ```{code-cell} ipython3
-centroids, assigned_clusters = kmeans(data, 6, 5) 
-plot_data(centroids.cpu(), data.cpu(), n_samples)
+# random simple initialization
+import time
+ct = time.time()
+centroids, assigned_clusters = kmeans(data, k, 10, init_method='simple') 
+print(time.time() - ct)
+plot_data(centroids.cpu(), data.cpu())
 ```
 
 ```{code-cell} ipython3
-%timeit centroids, assigned_clusters = kmeans(data, 6, 5)
+ct = time.time()
+centroids, assigned_clusters = kmeans(data, k, 10)
+print(time.time() - ct)
+plot_data(centroids.cpu(), data.cpu())
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3
