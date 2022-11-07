@@ -41,3 +41,58 @@
     - checkout the HF model inpainting that basically does this
       - https://forums.fast.ai/t/lesson-11-official-topic/101508/63?u=drchrislevy
 - start a blog!
+
+# 12 
+- [CLIP Interrogator](https://huggingface.co/spaces/pharma/CLIP-Interrogator) 
+	- inverse problems 
+	- not possible to invert the clip image encoder 
+	- thats why the texts it spits back are fun/interesting but not actually the "correct prompt"
+	- uses [BLIP](https://arxiv.org/abs/2201.12086) language model
+
+## Matrix Mult Notebook `01_matmul`
+- Einstein Summation
+	- learn a little about that
+	- faster than the broadcast trick
+- but of course we can run it directly in torch with `matmul` or `@`
+- That was CPU
+- Now onto using CUDA
+- a `mat_mul` that just takes a coordinate and computes just that one value of the matrix and leaves else as 0. Fills in one piece of the grid.
+	- can do in parallel b/c all independent 
+	- uses GPU kernel 
+	- `from numba import cuda`, `@cuda.jit`
+	- `cuda.to_device()` to put the devices on the GPU.
+	- also a concept of `blocks`, `TPB`, threads per block
+- was so much faster on the GPU. A 5 Million X change in this
+
+## Mean Shift Notebook
+- we need to be good at all the matrix multiplications, broadcasting, mechanical operations , tensor operations etc. Practice Practice Practice! 
+	- That is the purpose of the mean shift clustering notebook. To practice the things we learned in the mat mul notebook
+	- Also see the HW suggestions on implementing some stuff on just GPU
+- `functools.partial` , uses a lot. In this example was used for the plotting. 
+- `X = data.clone()`, pytorch thing
+- go over those broadcast rules!
+- [**norm**](https://en.wikipedia.org/wiki/Norm_(mathematics))
+	- comes up all he time when dealing with distances, loss functions etc.
+	- l2 norm is euclidean 
+- matplotlib FuncAnimation 
+- broadcasting on GPU, do things in batches 
+	- does the mean shift over again on GPU with batches
+	- those broadcasting rules are really important!
+
+## Calculus
+- you use to teach that but would be good to refresh on the Matrix Calc stuff.
+
+
+## TODO 
+- rewrite l2 norm euclidean distance with ein sum notation
+- implement k-means clustering, dbscan, locality sensitive hashing, or some other clustering, fast nearest neighbors, or similar algorithm of your choice, on the GPU. Check if your version is faster than a pure python or CPU version.
+- Invent a new meanshift algorithm which picks only the closest points, to avoid quadratic time.
+- make an animation
+- go over those notebooks
+- [essence of Calculus by 3Blue1Brown](https://www.youtube.com/watch?v=WUvTyaaNkzM)
+- [chain rule intuition](https://webspace.ship.edu/msrenault/geogebracalculus/derivative_intuitive_chain_rule.html)
+- [The Matrix Calculus You Need For Deep Learning](https://explained.ai/matrix-calculus/)
+- I havent learned the Einsum notation yet. Go back and study that part.
+- Go back and study the Cuda section of the 01 mat mul notebook
+- [The spelled-out intro to neural networks and backpropagation: building micrograd](https://www.youtube.com/watch?v=VMj-3S1tku0) by Andrej Karpathy
+- [Einsum](https://ajcr.net/Basic-guide-to-einsum/)
