@@ -14,7 +14,6 @@ kernelspec:
 
 ```{code-cell} ipython3
 import torch
-import random
 from matplotlib import pyplot as plt
 ```
 
@@ -148,7 +147,7 @@ data.shape
 ```{code-cell} ipython3
 import numpy as np
 
-def plot_data(centroids, nsample=1000):
+def plot_data(centroids, nsample=1000, save=None):
     fig = plt.figure()
     ax = fig.add_subplot()
     for cluster in range(k):
@@ -156,6 +155,8 @@ def plot_data(centroids, nsample=1000):
         ax.scatter(X[cluster_data, 0][:nsample], X[cluster_data, 1][:nsample], marker=".", s=1, zorder=0)
     for centroid in centroids.cpu():
         ax.scatter(centroid[0], centroid[1], marker="*", s=100, zorder=1, color='black')
+    if save is not None:
+        plt.savefig(f'{save}.png')
     plt.show()
 ```
 
@@ -172,7 +173,7 @@ is quite volatile. Often the initially random selected centroids
 will be from the same cluster.
 
 ```{code-cell} ipython3
-centroids = data[random.sample(range(len(data)),k)].to(device) # this random initialization method is not very good!
+centroids = data[torch.randint(0, len(data), (k,))].to(device) # this random initialization method is not very good!
 plot_data(centroids)
 ```
 
@@ -190,7 +191,7 @@ The idea is to spread out the initial centroids as much as possible.
 - Continue until you have $k$ centroids.
 
 ```{code-cell} ipython3
-centroids = data[random.sample(range(len(data)),1)].to(device) # pick first point at random
+centroids = data[torch.randint(0, len(data), (1,))].to(device) # pick first point at random
 ```
 
 ```{code-cell} ipython3
@@ -236,7 +237,7 @@ Lets wrap the logic for initialization in a single function:
 
 ```{code-cell} ipython3
 def initialize_centroids(data, k):
-    centroids = data[random.sample(range(len(data)),1)] # pick first point at random
+    centroids = data[torch.randint(0, len(data), (1,))] # pick first point at random
     
     for i in range(k-1): # pick remaining centroids
         dists_to_centroids = square_distance(data, centroids)
@@ -294,7 +295,7 @@ Okay, lets wrap it all up in one function.
 def kmeans(data, k, iterations=10, init_method=None):        
     # initialize centroids
     if init_method == 'simple':
-        centroids = data[random.sample(range(len(data)),k)] # this random initialization method is not very good!
+        centroids = data[torch.randint(0, len(data), (k,))] # this random initialization method is not very good!
     else:
         centroids = initialize_centroids(data, k)
     data = data
@@ -319,18 +320,17 @@ def kmeans(data, k, iterations=10, init_method=None):
 # random simple initialization
 import time
 ct = time.time()
-torch.manual_seed(11)
-random.seed(11)
-centroids, assigned_clusters = kmeans(data, k, 0, init_method='simple') 
+torch.manual_seed(53532)
+centroids, assigned_clusters = kmeans(data, k, 100, init_method='simple') 
 print(time.time() - ct)
 plot_data(centroids)
 ```
 
 ```{code-cell} ipython3
+# better spread out initalization
 ct = time.time()
-torch.manual_seed(11)
-random.seed(11)
-centroids, assigned_clusters = kmeans(data, k, 10)
+torch.manual_seed(53532)
+centroids, assigned_clusters = kmeans(data, k, 100)
 print(time.time() - ct)
 plot_data(centroids)
 ```
@@ -340,3 +340,22 @@ plot_data(centroids)
 - implement batching on GPU for distance computations so entire dataset does not need to use GPU memory
 - run multiple kmeans with different seeds and pick the best result.
 - improve the initialization method.
+- make animation
+
+```{code-cell} ipython3
+# hacky animation
+from PIL import Image
+# better spread out initalization
+for p in range(50):
+    torch.manual_seed(53532)
+    centroids, assigned_clusters = kmeans(data, k, p, init_method='simple')
+    plot_data(centroids, save = f'{p}')
+```
+
+```{code-cell} ipython3
+imgs = [Image.open(f'{p}.png') for p in range(50)]
+imgs[0].save("ani.gif", save_all=True, append_images=imgs[1:], duration=200, loop=0)
+
+from IPython.display import Image as IPythonImage
+IPythonImage(url='ani.gif')
+```
