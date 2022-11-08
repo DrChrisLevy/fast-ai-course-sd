@@ -19,8 +19,14 @@ kernelspec:
 ## Grab some MNIST Data
 
 ```{code-cell} ipython3
+import os
+os.chdir('/workspace')
+```
+
+```{code-cell} ipython3
 from pathlib import Path
 import pickle, gzip, math, os, time, shutil, matplotlib as mpl, matplotlib.pyplot as plt
+import torch
 
 MNIST_URL='https://github.com/mnielsen/neural-networks-and-deep-learning/blob/master/data/mnist.pkl.gz?raw=true'
 path_data = Path('data')
