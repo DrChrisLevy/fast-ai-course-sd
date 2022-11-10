@@ -57,11 +57,11 @@ x_train.shape
 
 $nh=50$ is the number of  neurons in the first layer
 
-$N$ is like the batch dimension. Think of it has $1$ when working through this math! 
+$N$ is like the batch dimension. Think of it as $1$ when working through this math! 
 Broadcasting can take care of $N$.
 
 
-$X$ : $(N, 784)$
+$x$ : $(N, 784)$
 
 $w_1$ : $(784, 50)$
 
@@ -77,9 +77,6 @@ $w_2$ : $(50, 1)$
 $b_2$ : $(N, 1)$
 
 $\hat{y}$ : $(N, 1)$
-
-
-
 
 ```{code-cell} ipython3
 x = x_train
@@ -146,10 +143,17 @@ loss
 ```
 
 ```{code-cell} ipython3
+def lin_layer(x, w, b):
+    return x @ w + b
+
+def relu(x):
+    return x.clamp(min=0.) # relu
+
+
 def forward_pass(x):
-    z1 = x @ w1 + b1
-    a1 = z1.clamp(min=0.) # relu
-    ypred = a1 @ w2 + b2
+    z1 = lin_layer(x, w1, b1)
+    a1 = relu(z1)
+    ypred = lin_layer(a1, w2, b2)
     return ypred
 ```
 
@@ -161,7 +165,9 @@ torch.equal(forward_pass(x_train), ypred)
 ypred = forward_pass(x_train)
 ```
 
-### Compute the Gradients Manually 
+### Compute the Gradients Manually
+
+- [need to know some matrix calculus](https://explained.ai/matrix-calculus/#sec:1.5)
 
 ```{code-cell} ipython3
 
