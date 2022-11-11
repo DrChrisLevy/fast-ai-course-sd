@@ -96,6 +96,7 @@
 - Go back and study the Cuda section of the 01 mat mul notebook
 - [The spelled-out intro to neural networks and backpropagation: building micrograd](https://www.youtube.com/watch?v=VMj-3S1tku0) by Andrej Karpathy
 - [Einsum](https://ajcr.net/Basic-guide-to-einsum/)
+  - another [resource](https://obilaniu6266h16.wordpress.com/2016/02/04/einstein-summation-in-numpy/) teaching Einsum notation
 - would be really fun to implement [product quantization](https://www.pinecone.io/learn/product-quantization/) with torch and GPU and then plug in with my Kmeans GPU and then try to improve mean shift with this approx NN search etc.
 
 # 13
