@@ -79,12 +79,12 @@ $b_2$ : $(N, 1)$
 $\hat{y}$ : $(N, 1)$
 
 ```{code-cell} ipython3
-x = x_train
+x = x_train.requires_grad_(True)
 n, xdim = x_train.shape
 nh = 50 # hidden layer neurons
 
-w1 = torch.rand((xdim, nh))
-b1 = torch.zeros((1,nh))
+w1 = torch.rand((xdim, nh)).requires_grad_(True)
+b1 = torch.zeros((1,nh)).requires_grad_(True)
 ```
 
 ```{code-cell} ipython3
@@ -97,13 +97,25 @@ z1.shape
 ```
 
 ```{code-cell} ipython3
+z1.shape
+```
+
+```{code-cell} ipython3
+w1.shape
+```
+
+```{code-cell} ipython3
+x.shape
+```
+
+```{code-cell} ipython3
 a1 = z1.clamp(min=0.) # relu
 a1.shape
 ```
 
 ```{code-cell} ipython3
-w2 = torch.rand((nh,1))
-b2 = torch.zeros((1,1))
+w2 = torch.rand((nh,1)).requires_grad_(True)
+b2 = torch.zeros((1,1)).requires_grad_(True)
 ```
 
 ```{code-cell} ipython3
@@ -165,18 +177,41 @@ torch.equal(forward_pass(x_train), ypred)
 ypred = forward_pass(x_train)
 ```
 
+```{code-cell} ipython3
+loss = loss_func(ypred, y_train)
+```
+
+```{code-cell} ipython3
+loss
+```
+
 ### Compute the Gradients Manually
 
 - [need to know some matrix calculus](https://explained.ai/matrix-calculus/#sec:1.5)
+- I like [these](https://web.stanford.edu/class/cs224n/readings/gradient-notes.pdf) Standford Lecture notes
+- TODO: see the 03 backprop notes in the fast-ai repo
 
 ```{code-cell} ipython3
+batch_size = 5000
+lr = 3e-2
+for epoch in range(10):
+    for i in range(0, len(x_train), batch_size):
+        xb = x_train[i:i+batch_size]
+        ypb = forward_pass(xb)
+        lossb = loss_func(ypb, y_train[i:i+batch_size])
+        lossb.backward()
+        print(lossb)
 
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
+        with torch.no_grad():
+            # not that -= is in place!
+            w1 -= lr * w1.grad 
+            w2 -= lr * w2.grad
+            b1 -= lr * b1.grad
+            b2 -= lr * b2.grad
+            
+            w1.grad.zero_()
+            w2.grad.zero_()     
+            b1.grad.zero_()
+            b2.grad.zero_()
+    print(lossb)
 ```
