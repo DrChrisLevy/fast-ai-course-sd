@@ -121,12 +121,13 @@
 ## TODO
 - at some point read [# The Matrix Calculus You Need For Deep Learning](https://explained.ai/matrix-calculus/)
 - do the 03 backprop notebook on your own
-	- feel free to do some parts slightly differently.
-	- the main objective is to do some forward and backward passes and derivatives from scratch without using autograd. 
-	- Write the math out on paper. I honestly find it easier to code up after seeing it on paper first. Put in image of that in the notebook. 
-	- PRACTICE PRACTICE the subclassing `nn.module` and looking at some simple examples on torch docs
-	- review/practice some basic train loops in torch
+    - feel free to do some parts slightly differently.
+    - the main objective is to do some forward and backward passes and derivatives from scratch without using autograd. 
+    - Write the math out on paper. I honestly find it easier to code up after seeing it on paper first. Put in image of that in the notebook. 
+    - PRACTICE PRACTICE the subclassing `nn.module` and looking at some simple examples on torch docs
+    - review/practice some basic train loops in torch
 - review some basic softmax and cross entropy stuff, nll_loss, log_softmax, cross_entropy
-	- implement yourself and compare with torch 
+    - implement yourself and compare with torch 
 - From last week go and try the product quantization. Does it male Mean shift quicker?
 - Also see TODOs from last week you didn't do yet!
+- Someone recommended this [VIDEO](https://www.youtube.com/watch?v=dB-u77Y5a6A&list=PL5-TkQAfAZFbzxjBHtzdVCWE0Zbhomg7r&t=2312s) for backprop and 

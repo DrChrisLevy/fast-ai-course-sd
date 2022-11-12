@@ -40,6 +40,24 @@ Here are some notes I was taking on paper.
 
 ![](../imgs/linear_layer_grads4.jpg)
 
++++
+
+Okay I had some misunderstanding above and maybe some mistakes. Then someone in the study group shared this awesome video with me. 
+
+https://www.youtube.com/watch?v=dB-u77Y5a6A&list=PL5-TkQAfAZFbzxjBHtzdVCWE0Zbhomg7r&t=2312s
+
+So it really explains well that these Jacobian Matrices are getting high dimensional etc. BUT, they
+are sparse and diagonal and have "special" properties. Most of the local Jacobian matrices end
+up being very sparse. This means we don't have to explicitly form the Jacobian and we can instead
+do some implicit multiplication. We get some nice tricks to express the explicit Jacobian multiplications as 
+some simpler implicit multiplications. 
+
+![](../imgs/linear_layer_grads5.jpg)
+
+![](../imgs/linear_layer_grads6.jpg)
+
+![](../imgs/linear_layer_grads7.jpg)
+
 ```{code-cell} ipython3
 X = torch.tensor([[1.,2.,3.,],[4.,5.,6.], [7.,8.,9.]]).requires_grad_(True)
 N = X.shape[0]
