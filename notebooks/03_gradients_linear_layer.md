@@ -99,12 +99,12 @@ b
 ```
 
 ```{code-cell} ipython3
-yhat = X @ W + b
-yhat
+out = X @ W + b
+out
 ```
 
 ```{code-cell} ipython3
-L = (yhat-Y).square().mean()
+L = (out-Y).square().mean()
 ```
 
 ```{code-cell} ipython3
@@ -120,11 +120,11 @@ W.grad
 ```
 
 ```{code-cell} ipython3
-(2/N * (yhat-Y)).t() @ X # W.grad has horizontal vector
+(2/N * (out-Y)).t() @ X # W.grad has horizontal vector
 ```
 
 ```{code-cell} ipython3
-X.t() @ (2/N * (yhat-Y)) # W.grad has vertical vector
+X.t() @ (2/N * (out-Y)) # W.grad has vertical vector
 ```
 
 ```{code-cell} ipython3
@@ -132,11 +132,11 @@ b.grad
 ```
 
 ```{code-cell} ipython3
-(2/N * (yhat-Y)).t() @ torch.eye(3) # b.grad as horizontal vector. don't need the torch.eye() but there for completeness and to show Chain Rule!
+(2/N * (out-Y)).t() @ torch.eye(3) # b.grad as horizontal vector. don't need the torch.eye() but there for completeness and to show Chain Rule!
 ```
 
 ```{code-cell} ipython3
-(2/N * (yhat-Y))  # b.grad as vertical vector
+(2/N * (out-Y))  # b.grad as vertical vector
 ```
 
 ```{code-cell} ipython3
@@ -144,11 +144,11 @@ X.grad
 ```
 
 ```{code-cell} ipython3
-2/N * (yhat-Y) @ W.t() # X.grad
+2/N * (out-Y) @ W.t() # X.grad
 ```
 
 ```{code-cell} ipython3
-yhat.g = 2/N * (yhat-Y)
+out.g = 2/N * (out-Y)
 ```
 
 ```{code-cell} ipython3
@@ -156,23 +156,17 @@ yhat.g = 2/N * (yhat-Y)
 ```
 
 ```{code-cell} ipython3
-def linear_grad(yhat, X, W, b):
-    # yhat = XW + b 
-    # LOSS = LossFunc(yhat)
+def linear_grad(out, X, W, b):
+    # out = XW + b 
+    # LOSS = LossFunc(out)
     # LOSS.backward()
-    X.g = yhat.g @ W.t()
-    W.g = X.t() @ yhat.g
-    b.g = yhat.g
+    X.g = out.g @ W.t()
+    W.g = X.t() @ out.g
+    b.g = out.g
 ```
 
 ```{code-cell} ipython3
-linear_grad(yhat, X, W, b)
-```
-
-```{code-cell} ipython3
-X.g = yhat.g @ W.t()
-W.g = X.t() @ yhat.g
-b.g = yhat.g
+linear_grad(out, X, W, b)
 ```
 
 ```{code-cell} ipython3
@@ -185,4 +179,8 @@ W.grad == W.g
 
 ```{code-cell} ipython3
 b.grad == b.g
+```
+
+```{code-cell} ipython3
+
 ```
