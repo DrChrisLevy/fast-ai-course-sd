@@ -27,6 +27,7 @@ os.chdir('/workspace')
 from pathlib import Path
 import pickle, gzip, math, os, time, shutil, matplotlib as mpl, matplotlib.pyplot as plt
 import torch
+from fastcore.test import test_close
 
 MNIST_URL='https://github.com/mnielsen/neural-networks-and-deep-learning/blob/master/data/mnist.pkl.gz?raw=true'
 path_data = Path('data')
@@ -57,8 +58,8 @@ x_train.shape
 
 $nh=50$ is the number of  neurons in the first layer
 
-$N$ is like the batch dimension. Think of it as $1$ when working through this math! 
-Broadcasting can take care of $N$.
+$N$ is like the batch dimension. 
+Broadcasting can take care of $N$. It will be $N=1$ when dealing with the bias terms in code.
 
 
 $x$ : $(N, 784)$
@@ -78,13 +79,17 @@ $b_2$ : $(N, 1)$
 
 $\hat{y}$ : $(N, 1)$
 
+
+
+![](../imgs/linear_layer_grads8.jpg)
+
 ```{code-cell} ipython3
-x = x_train.requires_grad_(True)
-n, xdim = x_train.shape
+x = x_train[:32]; y = y_train[:32][:,None] # to make things faster just take a batch
+N, xdim = x.shape
 nh = 50 # hidden layer neurons
 
-w1 = torch.rand((xdim, nh)).requires_grad_(True)
-b1 = torch.zeros((1,nh)).requires_grad_(True)
+w1 = torch.rand((xdim, nh))
+b1 = torch.zeros(nh)
 ```
 
 ```{code-cell} ipython3
@@ -114,8 +119,8 @@ a1.shape
 ```
 
 ```{code-cell} ipython3
-w2 = torch.rand((nh,1)).requires_grad_(True)
-b2 = torch.zeros((1,1)).requires_grad_(True)
+w2 = torch.rand((nh,1))
+b2 = torch.zeros(1)
 ```
 
 ```{code-cell} ipython3
@@ -123,20 +128,12 @@ w2.shape, b2.shape
 ```
 
 ```{code-cell} ipython3
-ypred = a1 @ w2 + b2
-ypred.shape
+out = a1 @ w2 + b2
+out.shape
 ```
 
 ```{code-cell} ipython3
-ypred.shape, y_train.shape
-```
-
-These are not the right shapes for broadcasting when subtracting b/c we will end up with a shape 
-(50000,50000).
-
-```{code-cell} ipython3
-y_train = y_train[:, None]
-y_train.shape
+out.shape, y.shape
 ```
 
 Also we want the loss function to be a scalar function so we can compute
@@ -150,7 +147,7 @@ def loss_func(yp, yh):
 ```
 
 ```{code-cell} ipython3
-loss = loss_func(ypred, y_train)
+loss = loss_func(out, y)
 loss
 ```
 
@@ -158,9 +155,13 @@ loss
 def lin_layer(x, w, b):
     return x @ w + b
 
+def linear_grad(out, x, w, b): # from the 03_gradients_linear_layer notebook
+    x.g = out.g @ w.t()
+    w.g = x.t() @ out.g
+    b.g = out.g.sum(dim=0)
+    
 def relu(x):
     return x.clamp(min=0.) # relu
-
 
 def forward_pass(x):
     z1 = lin_layer(x, w1, b1)
@@ -170,26 +171,99 @@ def forward_pass(x):
 ```
 
 ```{code-cell} ipython3
-torch.equal(forward_pass(x_train), ypred)
+torch.equal(forward_pass(x), out)
 ```
 
 ```{code-cell} ipython3
-ypred = forward_pass(x_train)
+out = forward_pass(x)
 ```
 
 ```{code-cell} ipython3
-loss = loss_func(ypred, y_train)
+loss = loss_func(out, y)
 ```
 
 ```{code-cell} ipython3
 loss
 ```
 
-### Compute the Gradients Manually
+```{code-cell} ipython3
+out.g = 2/N*(out-y)
+out.g.shape
+```
 
-- [need to know some matrix calculus](https://explained.ai/matrix-calculus/#sec:1.5)
-- I like [these](https://web.stanford.edu/class/cs224n/readings/gradient-notes.pdf) Standford Lecture notes
-- TODO: see the 03 backprop notes in the fast-ai repo
+```{code-cell} ipython3
+linear_grad(out, a1, w2, b2)
+```
+
+```{code-cell} ipython3
+print(a1.g.shape, w2.g.shape, b2.g.shape)
+```
+
+```{code-cell} ipython3
+z1.g = a1.g * (z1>0).float() # using chain rule and gradient of relu
+z1.g.shape
+```
+
+```{code-cell} ipython3
+linear_grad(z1, x, w1, b1)
+```
+
+```{code-cell} ipython3
+print(x.g.shape, w1.g.shape, b1.g.shape)
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+# CHECK with Torch Autograd
+x.requires_grad_(True)
+w1.requires_grad_(True)
+b1.requires_grad_(True)
+z1.requires_grad_(True)
+
+a1.requires_grad_(True)
+w2.requires_grad_(True)
+b2.requires_grad_(True)
+out.requires_grad_(True)
+
+out = forward_pass(x)
+loss = loss_func(out, y)
+loss.backward()
+```
+
+```{code-cell} ipython3
+test_close(x.g, x.grad)
+test_close(w1.g, w1.grad)
+test_close(w2.g, w2.grad)
+test_close(b1.g, b1.grad)
+test_close(b2.g, b2.grad)
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
 
 ```{code-cell} ipython3
 batch_size = 5000
@@ -214,4 +288,8 @@ for epoch in range(10):
             b1.grad.zero_()
             b2.grad.zero_()
     print(lossb)
+```
+
+```{code-cell} ipython3
+
 ```

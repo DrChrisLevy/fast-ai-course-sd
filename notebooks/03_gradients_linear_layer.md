@@ -90,7 +90,7 @@ W
 ```
 
 ```{code-cell} ipython3
-b = torch.tensor([[1.],[1.],[1.]]).requires_grad_(True) # probably can just use broadcasting here!
+b = torch.tensor(1.).requires_grad_(True)
 b.shape
 ```
 
@@ -132,11 +132,11 @@ b.grad
 ```
 
 ```{code-cell} ipython3
-(2/N * (out-Y)).t() @ torch.eye(3) # b.grad as horizontal vector. don't need the torch.eye() but there for completeness and to show Chain Rule!
+(2/N * (out-Y)).t().sum()
 ```
 
 ```{code-cell} ipython3
-(2/N * (out-Y))  # b.grad as vertical vector
+(2/N * (out-Y)).sum()  # b.grad as vertical vector
 ```
 
 ```{code-cell} ipython3
@@ -152,17 +152,13 @@ out.g = 2/N * (out-Y)
 ```
 
 ```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
 def linear_grad(out, X, W, b):
     # out = XW + b 
     # LOSS = LossFunc(out)
     # LOSS.backward()
     X.g = out.g @ W.t()
     W.g = X.t() @ out.g
-    b.g = out.g
+    b.g = out.g.sum(dim=0)
 ```
 
 ```{code-cell} ipython3
@@ -170,17 +166,17 @@ linear_grad(out, X, W, b)
 ```
 
 ```{code-cell} ipython3
-X.grad == X.g
+assert torch.equal(X.grad,X.g)
 ```
 
 ```{code-cell} ipython3
-W.grad == W.g
+assert torch.equal(W.grad,W.g)
 ```
 
 ```{code-cell} ipython3
-b.grad == b.g
+assert torch.equal(b.grad,b.g)
 ```
 
 ```{code-cell} ipython3
-
+b.grad, b.g
 ```
