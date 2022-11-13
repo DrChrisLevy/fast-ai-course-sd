@@ -84,7 +84,7 @@ $\hat{y}$ : $(N, 1)$
 ![](../imgs/linear_layer_grads8.jpg)
 
 ```{code-cell} ipython3
-x = x_train[:32]; y = y_train[:32][:,None] # to make things faster just take a batch
+x = x_train[:32]; y = y_train[:32][:,None].to(torch.float32) # to make things faster just take a batch
 N, xdim = x.shape
 nh = 50 # hidden layer neurons
 
@@ -354,39 +354,76 @@ test_close(B1.g, b1.grad)
 test_close(B2.g, b2.grad)
 ```
 
-```{code-cell} ipython3
+## Autograd
 
+```{code-cell} ipython3
+from torch import nn
+import torch.nn.functional as F
 ```
 
 ```{code-cell} ipython3
-
+class Linear(nn.Module):
+    
+    def __init__(self, nin, nout):
+        super().__init__()
+        self.w = torch.randn(nin,nout).requires_grad_(True)
+        self.b = torch.zeros(nout).requires_grad_(True)
+        
+    def forward(self, x):
+        return x @ self.w + self.b
 ```
 
 ```{code-cell} ipython3
-# batch_size = 5000
-# lr = 3e-2
-# for epoch in range(10):
-#     for i in range(0, len(x_train), batch_size):
-#         xb = x_train[i:i+batch_size]
-#         ypb = forward_pass(xb)
-#         lossb = loss_func(ypb, y_train[i:i+batch_size])
-#         lossb.backward()
-#         print(lossb)
-
-#         with torch.no_grad():
-#             # not that -= is in place!
-#             w1 -= lr * w1.grad 
-#             w2 -= lr * w2.grad
-#             b1 -= lr * b1.grad
-#             b2 -= lr * b2.grad
+class Model(nn.Module):
+    
+    def __init__(self, nin, nh, nout):
+        super().__init__()
+        self.layers = [Linear(nin, nh), nn.ReLU(), Linear(nh, nout)]
             
-#             w1.grad.zero_()
-#             w2.grad.zero_()     
-#             b1.grad.zero_()
-#             b2.grad.zero_()
-#     print(lossb)
+    def forward(self, x, target):
+        for l in self.layers:
+            x = l(x)
+        return F.mse_loss(x, target)
 ```
 
 ```{code-cell} ipython3
+Linear(784, 50)(x)
+```
 
+```{code-cell} ipython3
+model = Model(784, 50, 1)
+loss = model(x, y)
+loss.backward()
+```
+
+```{code-cell} ipython3
+model.layers[2].w.grad
+```
+
+## Basic Train Loop
+
+```{code-cell} ipython3
+batch_size = 128
+lr = 3e-2
+for epoch in range(1):
+    for i in range(0, len(x_train), batch_size):
+        xb = x_train[i:i+batch_size]
+        ypb = forward_pass(xb)
+        lossb = loss_func(ypb, y_train[i:i+batch_size])
+        lossb.backward()
+
+        with torch.no_grad():
+            # not that -= is in place!
+            w1 -= lr * w1.grad 
+            w2 -= lr * w2.grad
+            b1 -= lr * b1.grad
+            b2 -= lr * b2.grad
+            
+            w1.grad.zero_()
+            w2.grad.zero_()     
+            b1.grad.zero_()
+            b2.grad.zero_()
+        
+        if i % 10000:
+            print(lossb)
 ```
