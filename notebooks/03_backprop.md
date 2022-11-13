@@ -28,7 +28,7 @@ from pathlib import Path
 import pickle, gzip, math, os, time, shutil, matplotlib as mpl, matplotlib.pyplot as plt
 import torch
 from fastcore.test import test_close
-
+torch.manual_seed(42)
 MNIST_URL='https://github.com/mnielsen/neural-networks-and-deep-learning/blob/master/data/mnist.pkl.gz?raw=true'
 path_data = Path('data')
 path_data.mkdir(exist_ok=True)
@@ -192,6 +192,10 @@ out.g.shape
 ```
 
 ```{code-cell} ipython3
+out.g
+```
+
+```{code-cell} ipython3
 linear_grad(out, a1, w2, b2)
 ```
 
@@ -213,23 +217,16 @@ print(x.g.shape, w1.g.shape, b1.g.shape)
 ```
 
 ```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
 # CHECK with Torch Autograd
 x.requires_grad_(True)
 w1.requires_grad_(True)
 b1.requires_grad_(True)
 z1.requires_grad_(True)
 
-a1.requires_grad_(True)
 w2.requires_grad_(True)
 b2.requires_grad_(True)
-out.requires_grad_(True)
 
-out = forward_pass(x)
-loss = loss_func(out, y)
+loss = loss_func(forward_pass(x), y)
 loss.backward()
 ```
 
@@ -241,8 +238,120 @@ test_close(b1.g, b1.grad)
 test_close(b2.g, b2.grad)
 ```
 
-```{code-cell} ipython3
+# Refactor into Layers as Classes
 
+Remember one of the main things about backprop is that on
+a given node in the computational graph we just need to think about
+- $z = f(x,y)$ as an example
+- upstream derivative i.e. $\frac{dL}{dz}$ which is scalar loss wrt $z$ and same shape as $z$
+- local derivatives i.e. $\frac{dz}{dx}$ , $\frac{dz}{dy}$
+- downstream derivative i.e.  $\frac{dL}{dx} = \frac{dz}{dx} \frac{dL}{dz}$ ,  $\frac{dL}{dy} = \frac{dz}{dy} \frac{dL}{dz}$
+
+```{code-cell} ipython3
+class Relu:
+    # upstream gradient: dL/dout = out.g is assumed given
+    # local gradient: dout/dinp
+    # downstream gradient: dL/dinp = dout/dinp * dL/dout 
+    
+    def __call__(self, x):
+        self.inp = x
+        self.out = x.clamp(0.)
+        return self.out
+    
+    def backward(self):
+        self.inp.g = (self.inp > 0).float() * self.out.g
+        
+        
+        
+        
+```
+
+```{code-cell} ipython3
+class Lin():
+    # upstream gradient: dL/dout = out.g is assumed given
+    # local gradients: dout/dw, dout/db, dout/dinp
+    # downstream gradients: dL/dw, dL/db, dL/dinp
+    
+    def __init__(self, w , b):
+        self.w = w
+        self.b = b
+        
+    def __call__(self, inp):
+        self.inp = inp
+        self.out = self.inp @ self.w + self.b
+        return self.out
+    
+    def backward(self):
+        self.w.g = self.inp.t() @ self.out.g
+        self.b.g = self.out.g.sum(dim=0)
+        self.inp.g = self.out.g @ self.w.t()
+        
+```
+
+```{code-cell} ipython3
+class MSE:
+    
+    def __call__(self, inp, target):
+        self.inp = inp
+        self.target = target
+        self.out = (self.target - self.inp).square().mean()
+        return self.out
+    
+    def backward(self):
+        N = self.inp.shape[0]
+        self.inp.g = 2/N*(self.inp-self.target)
+```
+
+```{code-cell} ipython3
+class Model:
+    def __init__(self, w1, b1, w2, b2):
+        self.layers = [Lin(w1,b1), Relu(), Lin(w2,b2)]
+        self.loss = MSE()
+        
+    def __call__(self, x, targ):
+        for l in self.layers:
+            x = l(x)
+        return self.loss(x, targ) # notice that the loss is in the forward pass
+    
+    def backward(self):
+        self.loss.backward()
+        for l in reversed(self.layers):
+            l.backward()
+```
+
+```{code-cell} ipython3
+# renaming to capital version just so we can compare with what we have above
+X = x.clone().detach()
+W1 = w1.clone().detach()
+W2 = w2.clone().detach()
+B1 = b1.clone().detach()
+B2 = b2.clone().detach()
+
+Y = y.clone().detach()
+```
+
+```{code-cell} ipython3
+model = Model(W1,B1,W2,B2)
+```
+
+```{code-cell} ipython3
+loss # what we got before when we never used the classes
+```
+
+```{code-cell} ipython3
+model(X,y)
+```
+
+```{code-cell} ipython3
+model.backward()
+```
+
+```{code-cell} ipython3
+test_close(X.g, x.grad)
+test_close(W1.g, w1.grad)
+test_close(W2.g, w2.grad)
+test_close(B1.g, b1.grad)
+test_close(B2.g, b2.grad)
 ```
 
 ```{code-cell} ipython3
@@ -254,40 +363,28 @@ test_close(b2.g, b2.grad)
 ```
 
 ```{code-cell} ipython3
+# batch_size = 5000
+# lr = 3e-2
+# for epoch in range(10):
+#     for i in range(0, len(x_train), batch_size):
+#         xb = x_train[i:i+batch_size]
+#         ypb = forward_pass(xb)
+#         lossb = loss_func(ypb, y_train[i:i+batch_size])
+#         lossb.backward()
+#         print(lossb)
 
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-batch_size = 5000
-lr = 3e-2
-for epoch in range(10):
-    for i in range(0, len(x_train), batch_size):
-        xb = x_train[i:i+batch_size]
-        ypb = forward_pass(xb)
-        lossb = loss_func(ypb, y_train[i:i+batch_size])
-        lossb.backward()
-        print(lossb)
-
-        with torch.no_grad():
-            # not that -= is in place!
-            w1 -= lr * w1.grad 
-            w2 -= lr * w2.grad
-            b1 -= lr * b1.grad
-            b2 -= lr * b2.grad
+#         with torch.no_grad():
+#             # not that -= is in place!
+#             w1 -= lr * w1.grad 
+#             w2 -= lr * w2.grad
+#             b1 -= lr * b1.grad
+#             b2 -= lr * b2.grad
             
-            w1.grad.zero_()
-            w2.grad.zero_()     
-            b1.grad.zero_()
-            b2.grad.zero_()
-    print(lossb)
+#             w1.grad.zero_()
+#             w2.grad.zero_()     
+#             b1.grad.zero_()
+#             b2.grad.zero_()
+#     print(lossb)
 ```
 
 ```{code-cell} ipython3

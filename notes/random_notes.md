@@ -128,6 +128,13 @@
     - review/practice some basic train loops in torch
 - review some basic softmax and cross entropy stuff, nll_loss, log_softmax, cross_entropy
     - implement yourself and compare with torch 
+- good docs on [nn.module](https://pytorch.org/tutorials/beginner/nn_tutorial.html)
 - From last week go and try the product quantization. Does it male Mean shift quicker?
 - Also see TODOs from last week you didn't do yet!
 - Someone recommended this [VIDEO](https://www.youtube.com/watch?v=dB-u77Y5a6A&list=PL5-TkQAfAZFbzxjBHtzdVCWE0Zbhomg7r&t=2312s) for backprop and 
+    it was amazing. Especially for higher dimensional Jacobian's and some simple heuristics and rules for getting shapes to match up etc.
+- This video was good
+- someone said check out [Becoming a Backprop Ninja](https://www.youtube.com/watch?v=q8SA3rM6ckI)
+- [The spelled-out intro to neural networks and backpropagation: building micrograd
+](https://www.youtube.com/watch?v=VMj-3S1tku0&t=5836s)
+  - Actually he has been doing a [series](https://www.youtube.com/c/AndrejKarpathy/videos) 

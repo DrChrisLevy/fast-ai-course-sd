@@ -90,7 +90,7 @@ W
 ```
 
 ```{code-cell} ipython3
-b = torch.tensor(1.).requires_grad_(True)
+b = torch.zeros(1).requires_grad_(True)
 b.shape
 ```
 
@@ -175,8 +175,4 @@ assert torch.equal(W.grad,W.g)
 
 ```{code-cell} ipython3
 assert torch.equal(b.grad,b.g)
-```
-
-```{code-cell} ipython3
-b.grad, b.g
 ```
