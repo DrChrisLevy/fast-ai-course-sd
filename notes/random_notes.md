@@ -96,4 +96,45 @@
 - Go back and study the Cuda section of the 01 mat mul notebook
 - [The spelled-out intro to neural networks and backpropagation: building micrograd](https://www.youtube.com/watch?v=VMj-3S1tku0) by Andrej Karpathy
 - [Einsum](https://ajcr.net/Basic-guide-to-einsum/)
+  - another [resource](https://obilaniu6266h16.wordpress.com/2016/02/04/einstein-summation-in-numpy/) teaching Einsum notation
 - would be really fun to implement [product quantization](https://www.pinecone.io/learn/product-quantization/) with torch and GPU and then plug in with my Kmeans GPU and then try to improve mean shift with this approx NN search etc.
+
+# 13
+## backprop Notebook
+- starting off with 03_backprop notebook
+- stack of two layers with MNIST and simple MSE loss
+- going over derivatives and gradients background knowledge 
+- cool little trick of using `import pdb; pdb.set_trace()` interactive debugger within the notebook. Can also achieve same thing with `breakpoint()`. `c` to continue and `n` for next line. Actually `breakpoint()` does not work with Jupyter notebook. 
+
+### Refactoring the Above BackProp with Layers as Classes
+- see the notebook. `__call__` as the forward pass and `backward` as the method for backward pass and using `self.blah` to store the layers and intermediate steps etc.
+- we did it this way so then we could subclass `nn.Module`
+	- definitely spend some time practicing that 
+
+## MiniBatch Training NoteBook
+- talking about how we could use a different LOSS function. MSE not the best approach for that classification. 
+	- softmax function,  cross entropy loss, log softmax
+- Log Sum Exp trick . That's cool. Avoid super high numbers and floating point issues.
+- `nll_loss` negative log likelihood loss, log_softmax, and cross_entropy that puts them together. Need to study this and go over it slower. All come from `F` module 
+
+
+## TODO
+- at some point read [# The Matrix Calculus You Need For Deep Learning](https://explained.ai/matrix-calculus/)
+- do the 03 backprop notebook on your own
+    - feel free to do some parts slightly differently.
+    - the main objective is to do some forward and backward passes and derivatives from scratch without using autograd. 
+    - Write the math out on paper. I honestly find it easier to code up after seeing it on paper first. Put in image of that in the notebook. 
+    - PRACTICE PRACTICE the subclassing `nn.module` and looking at some simple examples on torch docs
+    - review/practice some basic train loops in torch
+- review some basic softmax and cross entropy stuff, nll_loss, log_softmax, cross_entropy
+    - implement yourself and compare with torch 
+- good docs on [nn.module](https://pytorch.org/tutorials/beginner/nn_tutorial.html)
+- From last week go and try the product quantization. Does it male Mean shift quicker?
+- Also see TODOs from last week you didn't do yet!
+- Someone recommended this [VIDEO](https://www.youtube.com/watch?v=dB-u77Y5a6A&list=PL5-TkQAfAZFbzxjBHtzdVCWE0Zbhomg7r&t=2312s) for backprop and 
+    it was amazing. Especially for higher dimensional Jacobian's and some simple heuristics and rules for getting shapes to match up etc.
+- This video was good
+- someone said check out [Becoming a Backprop Ninja](https://www.youtube.com/watch?v=q8SA3rM6ckI)
+- [The spelled-out intro to neural networks and backpropagation: building micrograd
+](https://www.youtube.com/watch?v=VMj-3S1tku0&t=5836s)
+  - Actually he has been doing a [series](https://www.youtube.com/c/AndrejKarpathy/videos) 
