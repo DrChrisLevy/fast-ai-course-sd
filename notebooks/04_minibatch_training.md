@@ -409,7 +409,3 @@ mdl
 for p in mdl.parameters():
     print(p.shape)
 ```
-
-```{code-cell} ipython3
-
-```
