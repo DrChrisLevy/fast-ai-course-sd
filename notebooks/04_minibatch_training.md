@@ -267,6 +267,149 @@ for epoch in range(3):
         print(accuracy(ypred, ytrue), loss)
 ```
 
+## Using parameters
+
++++
+
+It would be nice if we could access all the model parameters.
+Read more about modules [here](https://pytorch.org/docs/stable/notes/modules.html#a-simple-custom-module)
+
+```{code-cell} ipython3
+class DummyModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.Linear(5,5)
+        self.layer2 = nn.Linear(5,10)
+    
+    def forward(x):
+        return self.layer2(self.layer1(x))
+```
+
+```{code-cell} ipython3
+dm = DummyModel()
+```
+
+```{code-cell} ipython3
+list(dm.named_modules())
+```
+
+This module `DummyModel` is composed of two “children” or “submodules” (`layer1` and `layer1`) that define the layers of the neural network and are utilized for computation within the module’s `forward()` method. Immediate children of a module can be iterated through via a call to `children()` or `named_children()`:
+
+```{code-cell} ipython3
+list(dm.named_children())
+```
+
+For any given module, its parameters consist of its direct parameters as well as the parameters of all submodules. This means that calls to `parameters()` and `named_parameters()` will recursively include child parameters, allowing for convenient optimization of all parameters within the network:
+
+```{code-cell} ipython3
+list(dm.parameters())
+```
+
+```{code-cell} ipython3
+class MLP(nn.Module):
+    def __init__(self, n_in, nh, n_out):
+        super().__init__()
+        self.layer1 = nn.Linear(n_in, nh)
+        self.relu = nn.ReLU()
+        self.layer2 = nn.Linear(nh, n_out)
+        
+    def forward(self, x):
+        return self.layer2(self.relu(self.layer1(x)))
+```
+
+```{code-cell} ipython3
+model = MLP(784, 50, 10)
+```
+
+```{code-cell} ipython3
+def fit():
+    bs = 512
+    lr = 0.5
+    for epoch in range(3):
+        for i in range(0, len(x_train), bs):
+            ypred = model(x_train[i:i+bs]) # have not been put through softmax etc.
+            ytrue = y_train[i:i+bs]
+            loss = F.cross_entropy(ypred, ytrue)
+            loss.backward()
+            with torch.no_grad():
+                for p in model.parameters():
+                    p -= lr*p.grad
+                    model.zero_grad() # p.grad.zero_() # could also do model.
+            print(accuracy(ypred, ytrue), loss)
+```
+
+```{code-cell} ipython3
+fit()
+```
+
+First, lets look at `__setattr__` and `__repr__`. Whenever you do `dc.a=` 
+you are calling `__setattr__`.
+
+```{code-cell} ipython3
+class DummyClass:
+    
+    def __init__(self):
+        self.stuff = dict() # this actually calls __setattr__
+    
+    def __setattr__(self,k,v):
+        if k!= 'stuff':
+            self.stuff[k] = v
+        super().__setattr__(k,v)
+
+    def __repr__(self): # must return a string
+        return f'{self.stuff}'
+        
+        
+```
+
+```{code-cell} ipython3
+dc = DummyClass()
+dc # prints whatever is defined in __repr__
+```
+
+```{code-cell} ipython3
+dc.a = 1
+```
+
+```{code-cell} ipython3
+dc.b = 'chris'
+```
+
+```{code-cell} ipython3
+dc
+```
+
+Behind the scenes, PyTorch overrides the `__setattr__` function in `nn.Module` so that the submodules you define are properly registered as parameters of the model.
+
+```{code-cell} ipython3
+class MyModule():
+    def __init__(self, n_in, nh, n_out):
+        self._modules = {}
+        self.l1 = nn.Linear(n_in,nh)
+        self.l2 = nn.Linear(nh,n_out)
+        
+    def __setattr__(self,k,v):
+        if not k.startswith("_"): self._modules[k] = v
+        super().__setattr__(k,v)
+        
+    def __repr__(self): return f'{self._modules}'
+    
+    def parameters(self):
+        for l in self._modules.values():
+            # TODO: rewrite with `yield from`
+            for p in l.parameters(): yield p
+```
+
+```{code-cell} ipython3
+mdl = MyModule(784,50,10)
+mdl
+```
+
+```{code-cell} ipython3
+for p in mdl.parameters():
+    print(p.shape)
+```
+
 ```{code-cell} ipython3
 
 ```
