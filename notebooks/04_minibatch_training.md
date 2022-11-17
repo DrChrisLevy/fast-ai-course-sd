@@ -18,13 +18,21 @@ from pathlib import Path
 from torch import tensor,nn
 import torch.nn.functional as F
 from fastcore.test import test_close
+import os
+os.chdir('/workspace')
 
 torch.set_printoptions(precision=2, linewidth=140, sci_mode=False)
 torch.manual_seed(1)
 mpl.rcParams['image.cmap'] = 'gray'
 
+MNIST_URL='https://github.com/mnielsen/neural-networks-and-deep-learning/blob/master/data/mnist.pkl.gz?raw=true'
 path_data = Path('data')
+path_data.mkdir(exist_ok=True)
 path_gz = path_data/'mnist.pkl.gz'
+
+from urllib.request import urlretrieve
+if not path_gz.exists():
+    urlretrieve(MNIST_URL, path_gz)
 with gzip.open(path_gz, 'rb') as f: ((x_train, y_train), (x_valid, y_valid), _) = pickle.load(f, encoding='latin-1')
 x_train, y_train, x_valid, y_valid = map(tensor, [x_train, y_train, x_valid, y_valid])
 ```
@@ -257,4 +265,8 @@ for epoch in range(3):
                     l.weight.grad.zero_()
                     l.bias.grad.zero_()
         print(accuracy(ypred, ytrue), loss)
+```
+
+```{code-cell} ipython3
+
 ```

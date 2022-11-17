@@ -138,3 +138,57 @@
 - [The spelled-out intro to neural networks and backpropagation: building micrograd
 ](https://www.youtube.com/watch?v=VMj-3S1tku0&t=5836s)
   - Actually he has been doing a [series](https://www.youtube.com/c/AndrejKarpathy/videos) 
+
+# 14
+
+- started with a review of last time about back propagation and those partial derivatives involved in the linear layer
+- Going through `04_minibatch_training.ipynb` notebook
+- talking about `nn.module` and implementing a simple class of what it does before we use it in torch
+- Now talking about `nn.ModuleList` and registering Modules 
+- `nn.Sequential`, similar to `tf.keras` sequential 
+- Optimizers
+	- implementing our own first and then just calling `torch.optim.SGD`
+- `Dataset` class 
+	- our own simple dataset class first from scratch
+- DataLoader
+	- a iterator 
+	- again, always looking at how we can implement a simple class on our own first
+	- random sampling, samplers, batch samplers, `collate_fn`
+	- multi processing data loader 
+
+##  Hugging Face Datasets
+
+- `05_datasets.ipynb`
+- turning HF dataset into torch data loader with some collate function
+- `with_transforms`
+- python `@inplace` decorator 
+- `itemgetter`
+- torch default collate function `default_collate`
+- `collate_dict`
+
+- now talking about building MiniAI with nb-dev and `# export` in some of the notebooks
+	- just the first mention of it and a heads up that we will be using nb-dev etc.
+- `fc.delegates` cool trick/tool for `kwargs`
+- going through some plt stuff for showing images, axis, grids, subplots, etc.
+
+##  06_foundations.ipynb
+
+- some foundations we need for the future notebooks 
+- CallBacks
+	- passing in a function that some other function will call at particular times
+- lambdas and partials 
+
+## TODO
+-  how to make torch run better on mac m1 within docker 
+	- is there arm docker images?
+	- Right now `uname -m` is printing `x86_64` and emulation is slow!
+- learn about torch datasets and data loaders
+	- `DataLoader, SequentialSampler, RandomSampler, BatchSampler` etc.
+- understand the data loader stuff in `04_minibatch_training.ipynb` notebook
+- go through the `05_datasets.ipynb` notebook
+- go through `06_foundations.ipynb`
+- HW - debug those notebooks and understand stuff under the hood
+- practice some more training loops with optimizers
+- Jonathan Whitaker video [fun with optimization](https://youtu.be/rO5nmpniYkU) 
+	- [forum link](https://forums.fast.ai/t/fun-with-optimization/102045)
+	- 
