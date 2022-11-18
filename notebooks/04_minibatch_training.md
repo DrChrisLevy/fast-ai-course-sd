@@ -409,3 +409,308 @@ mdl
 for p in mdl.parameters():
     print(p.shape)
 ```
+
+### Registering Modules
+
+```{code-cell} ipython3
+from functools import reduce
+```
+
+You can read more about `reduce` in the docs or this great [resource](https://realpython.com/python-reduce-function/).
+the function (first arg) to `reduce` should take two arguments and then goes left to right
+over the iterable in a cumulative fashion.
+
+```{code-cell} ipython3
+def my_add(a, b):
+    result = a + b
+    print(f"{a} + {b} = {result}")
+    return result
+
+numbers = [0, 1, 2, 3, 4]
+
+reduce(my_add, numbers)
+```
+
+```{code-cell} ipython3
+layers = [nn.Linear(784, 50), nn.ReLU(), nn.Linear(50, 10)]
+```
+
+Here we have to register the modules 
+
+```{code-cell} ipython3
+class Model(nn.Module):
+    def __init__(self, layers):
+        super().__init__()
+        self.layers = layers
+        for i,l in enumerate(self.layers):
+            self.add_module(f'layer_{i}', l)
+    
+    def forward(self, x):
+        return reduce(lambda val,layer: layer(val), self.layers, x)
+```
+
+```{code-cell} ipython3
+model = Model(layers)
+model
+```
+
+```{code-cell} ipython3
+model(x_train).shape
+```
+
+### nn.ModuleList
+
+`nn.ModuleList` does this for us.
+
+```{code-cell} ipython3
+class SequentialModel(nn.Module):
+    def __init__(self, layers):
+        super().__init__()
+        self.layers = nn.ModuleList(layers)
+        
+    def forward(self, x):
+        for l in self.layers:
+            x = l(x)
+        return x
+```
+
+```{code-cell} ipython3
+model = SequentialModel(layers)
+model
+```
+
+```{code-cell} ipython3
+fit()
+```
+
+```{code-cell} ipython3
+F.cross_entropy(model(x_train), y_train), accuracy(model(x_train), y_train)
+```
+
+### nn.Sequential
+
+`nn.Sequential` is a convenient class which does the same as the above:
+
+```{code-cell} ipython3
+model = nn.Sequential(nn.Linear(784,50), nn.ReLU() ,nn.Linear(50,10))
+model
+```
+
+```{code-cell} ipython3
+fit()
+F.cross_entropy(model(x_train), y_train), accuracy(model(x_train), y_train)
+```
+
+### optim
+
+looks something like this
+
+```{code-cell} ipython3
+class Optimizer():
+    def __init__(self, params, lr=0.5):
+        self.params = list(params)
+        self.lr=lr
+        
+    def step(self):
+        with torch.no_grad():
+            for p in self.params:
+                p -= p.grad * self.lr
+
+    def zero_grad(self):
+        for p in self.params:
+            p.grad.data.zero_()
+```
+
+```{code-cell} ipython3
+model = nn.Sequential(nn.Linear(m,nh), nn.ReLU(), nn.Linear(nh,10))
+opt = Optimizer(model.parameters())
+```
+
+```{code-cell} ipython3
+def report(loss, preds, yb): print(f'{loss:.2f}, {accuracy(preds, yb):.2f}')
+```
+
+```{code-cell} ipython3
+bs = 512
+for epoch in range(10):
+    for i in range(0, len(x_train), bs):
+        x = x_train[i:i+bs]
+        y = y_train[i:i+bs]
+        ypred = model(x)
+        loss = F.cross_entropy(ypred, y)
+        loss.backward()
+        opt.step()
+        opt.zero_grad()
+    report(loss, ypred, y)
+```
+
+Now lets use the torch.optim
+
+```{code-cell} ipython3
+from torch import optim
+```
+
+```{code-cell} ipython3
+model = nn.Sequential(nn.Linear(784, 50), nn.ReLU(), nn.Linear(50, 10))
+opt = optim.SGD(model.parameters(), lr=0.5)
+```
+
+```{code-cell} ipython3
+bs = 512
+for epoch in range(10):
+    for i in range(0, len(x_train), bs):
+        x = x_train[i:i+bs]
+        y = y_train[i:i+bs]
+        ypred = model(x)
+        loss = F.cross_entropy(ypred, y)
+        loss.backward()
+        opt.step()
+        opt.zero_grad()
+    report(loss, ypred, y)
+```
+
+## Dataset and DataLoader
+
+Previously, our loop iterated over batches (xb, yb) like this:
+
+```python
+for i in range(0, n, bs):
+    xb,yb = train_ds[i:min(n,i+bs)]
+    ...
+```
+
+Let's make our loop much cleaner, using a data loader:
+
+```python
+for xb,yb in train_dl:
+    ...
+```
+
+[docs on datasets and dataloaders](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html)
+
+Dataset stores the samples and their corresponding labels, and DataLoader wraps an iterable around the Dataset to enable easy access to the samples.
+
+```{code-cell} ipython3
+class Dataset:
+    def __init__(self,x,y):
+        self.x = x
+        self.y = y
+    
+    def __len__(self):
+        return len(self.x)
+    
+    def __getitem__(self, i):
+        return self.x[i], self.y[i]
+```
+
+```{code-cell} ipython3
+train_ds,valid_ds = Dataset(x_train, y_train),Dataset(x_valid, y_valid)
+assert len(train_ds)==len(x_train)
+assert len(valid_ds)==len(x_valid)
+```
+
+We can even get a batch, not just one item at once.
+
+```{code-cell} ipython3
+train_ds[0:5]
+```
+
+```{code-cell} ipython3
+model = nn.Sequential(nn.Linear(784, 50), nn.ReLU(), nn.Linear(50, 10))
+opt = optim.SGD(model.parameters(), lr=0.5)
+```
+
+```{code-cell} ipython3
+bs = 512
+for epoch in range(10):
+    for i in range(0, len(train_ds), bs):
+        x,y = train_ds[i:i+bs]
+        ypred = model(x)
+        loss = F.cross_entropy(ypred, y)
+        loss.backward()
+        opt.step()
+        opt.zero_grad()
+    report(loss, ypred, y)
+```
+
+### DataLoader
+
+Lets make it even better.
+Check out this cool `__iter__`.
+DataLoaders wrap a DataSet..
+
+```{code-cell} ipython3
+class DataLoader:
+    def __init__(self, ds, bs):
+        self.ds = ds
+        self.bs = bs
+        
+    def __iter__(self):
+        for i in range(0, len(self.ds), bs):
+            yield self.ds[i:i+bs]
+```
+
+```{code-cell} ipython3
+bs = 512
+train_dl = DataLoader(train_ds, bs)
+val_dl = DataLoader(valid_ds, bs)
+```
+
+```{code-cell} ipython3
+next(iter(train_dl))
+```
+
+```{code-cell} ipython3
+next(iter(val_dl))
+```
+
+```{code-cell} ipython3
+xb = next(iter(train_ds))[0]
+plt.imshow(xb.reshape(28,28))
+```
+
+```{code-cell} ipython3
+model = nn.Sequential(nn.Linear(784, 50), nn.ReLU(), nn.Linear(50, 10))
+opt = optim.SGD(model.parameters(), lr=0.5)
+def fit():
+    bs = 512
+    for epoch in range(10):
+        for x,y in train_dl:
+            ypred = model(x)
+            loss = F.cross_entropy(ypred, y)
+            loss.backward()
+            opt.step()
+            opt.zero_grad()
+        report(loss, ypred, y)
+fit()
+```
+
+### Random sampling
+
+```{code-cell} ipython3
+import random
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
