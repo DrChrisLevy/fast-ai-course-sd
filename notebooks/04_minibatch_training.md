@@ -919,6 +919,6 @@ opt = optim.SGD(model.parameters(), lr=0.5)
 fit(10, model, F.cross_entropy, opt, train_dl, val_dl)
 ```
 
-```{code-cell} ipython3
+Some good [docs](https://pytorch.org/docs/stable/data.html) on dataloaders in general.
 
-```
+Good [blog](https://www.scottcondron.com/jupyter/visualisation/audio/2020/12/02/dataloaders-samplers-collate.html) on datasets and dataloaders etc.
