@@ -435,7 +435,7 @@ reduce(my_add, numbers)
 layers = [nn.Linear(784, 50), nn.ReLU(), nn.Linear(50, 10)]
 ```
 
-Here we have to register the modules 
+Here we have to register the modules
 
 ```{code-cell} ipython3
 class Model(nn.Module):
@@ -692,23 +692,231 @@ import random
 ```
 
 ```{code-cell} ipython3
-
+class Sampler:
+    
+    def __init__(self, ds, shuffle=False):
+        self.shuffle = shuffle
+        self.n = len(ds)
+    
+    def __iter__(self):
+        res = list(range(self.n))
+        if self.shuffle:
+            random.shuffle(res)
+        return iter(res)
+        
 ```
 
 ```{code-cell} ipython3
-
+ss = Sampler(train_ds, shuffle=False)
 ```
 
 ```{code-cell} ipython3
-
+it = iter(ss)
 ```
 
 ```{code-cell} ipython3
-
+next(it)
 ```
 
 ```{code-cell} ipython3
+next(it)
+```
 
+```{code-cell} ipython3
+from itertools import islice
+```
+
+```{code-cell} ipython3
+list(islice(ss, 5))
+```
+
+```{code-cell} ipython3
+ss = Sampler(train_ds, shuffle=True)
+list(islice(ss, 5))
+```
+
+```{code-cell} ipython3
+import fastcore.all as fc
+```
+
+```{code-cell} ipython3
+class BatchSampler():
+    def __init__(self, sampler, bs, drop_last=False):
+#         sampler,bs,drop_last = self.sampler,self.bs,self.drop_last
+        fc.store_attr()
+
+    def __iter__(self): yield from fc.chunked(iter(self.sampler), self.bs, drop_last=self.drop_last)
+```
+
+```{code-cell} ipython3
+batchs = BatchSampler(ss, 4)
+list(islice(batchs, 5))
+```
+
+```{code-cell} ipython3
+def collate(b):
+    xs,ys = zip(*b)
+    return torch.stack(xs),torch.stack(ys)
+```
+
+```{code-cell} ipython3
+collate([train_ds[:5], train_ds[5:10]])
+```
+
+```{code-cell} ipython3
+collate([train_ds[:5], train_ds[5:10]])[0].shape
+```
+
+```{code-cell} ipython3
+collate([train_ds[:5], train_ds[5:10]])[1].shape
+```
+
+```{code-cell} ipython3
+class DataLoader():
+    
+    def __init__(self, ds, batchs, collate_fn=collate):
+        fc.store_attr()
+        
+    def __iter__(self):
+        for b in self.batchs:
+            yield self.collate_fn(self.ds[i] for i in b)
+```
+
+```{code-cell} ipython3
+train_samp = BatchSampler(Sampler(train_ds, shuffle=True ), bs)
+valid_samp = BatchSampler(Sampler(valid_ds, shuffle=False), bs)
+```
+
+```{code-cell} ipython3
+train_dl = DataLoader(train_ds, batchs=train_samp, collate_fn=collate)
+valid_dl = DataLoader(valid_ds, batchs=valid_samp, collate_fn=collate)
+```
+
+```{code-cell} ipython3
+xb,yb = next(iter(valid_dl))
+plt.imshow(xb[0].view(28,28))
+yb[0]
+```
+
+```{code-cell} ipython3
+xb.shape, yb.shape
+```
+
+```{code-cell} ipython3
+model = nn.Sequential(nn.Linear(784, 50), nn.ReLU(), nn.Linear(50, 10))
+opt = optim.SGD(model.parameters(), lr=0.5)
+fit()
+```
+
+### PyTorch DataLoader
+- also takes care of multi processing (doing stuff in parallel). Similar to TF.
+
+```{code-cell} ipython3
+train_ds[0]
+```
+
+```{code-cell} ipython3
+from torch.utils.data import DataLoader, SequentialSampler, RandomSampler, BatchSampler
+```
+
+```{code-cell} ipython3
+bs = 512
+train_samp = BatchSampler(RandomSampler(train_ds),     bs, drop_last=False)
+valid_samp = BatchSampler(SequentialSampler(valid_ds), bs, drop_last=False)
+```
+
+```{code-cell} ipython3
+train_dl = DataLoader(train_ds, batch_sampler=train_samp, collate_fn=collate)
+valid_dl = DataLoader(valid_ds, batch_sampler=valid_samp, collate_fn=collate)
+```
+
+```{code-cell} ipython3
+next(iter(train_dl))
+```
+
+```{code-cell} ipython3
+model = nn.Sequential(nn.Linear(784, 50), nn.ReLU(), nn.Linear(50, 10))
+opt = optim.SGD(model.parameters(), lr=0.5)
+fit()
+```
+
+PyTorch can auto-generate the BatchSampler for us:
+
+```{code-cell} ipython3
+train_dl = DataLoader(train_ds, bs, sampler=RandomSampler(train_ds), collate_fn=collate)
+valid_dl = DataLoader(valid_ds, bs, sampler=SequentialSampler(valid_ds), collate_fn=collate)
+```
+
+PyTorch can also generate the Sequential/RandomSamplers too:
+
+```{code-cell} ipython3
+train_dl = DataLoader(train_ds, bs, shuffle=True, drop_last=True, num_workers=2)
+valid_dl = DataLoader(valid_ds, bs, shuffle=False, num_workers=2)
+```
+
+```{code-cell} ipython3
+model = nn.Sequential(nn.Linear(784, 50), nn.ReLU(), nn.Linear(50, 10))
+opt = optim.SGD(model.parameters(), lr=0.5)
+fit()
+```
+
+```{code-cell} ipython3
+train_ds[[4,6,7]]
+```
+
+```{code-cell} ipython3
+train_dl = DataLoader(train_ds, sampler=train_samp)
+valid_dl = DataLoader(valid_ds, sampler=valid_samp)
+```
+
+```{code-cell} ipython3
+for x,y in train_dl:
+    break
+y.shape
+```
+
+```{code-cell} ipython3
+xb,yb = next(iter(train_dl))
+xb.shape, yb.shape
+```
+
+## Validation
+
++++
+
+You **always** should also have a [validation set](http://www.fast.ai/2017/11/13/validation-sets/), in order to identify if you are overfitting.
+
+We will calculate and print the validation loss at the end of each epoch.
+
+(Note that we always call `model.train()` before training, and `model.eval()` before inference, because these are used by layers such as `nn.BatchNorm2d` and `nn.Dropout` to ensure appropriate behaviour for these different phases.)
+
+```{code-cell} ipython3
+def fit(epochs, model, loss_func, opt, train_dl, valid_dl):
+    for epoch in range(epochs):
+        model.train()
+        for xb,yb in train_dl:
+            loss = loss_func(model(xb), yb)
+            loss.backward()
+            opt.step()
+            opt.zero_grad()
+
+        model.eval()
+        with torch.no_grad():
+            tot_loss,tot_acc,count = 0.,0.,0
+            for xb,yb in valid_dl:
+                pred = model(xb)
+                n = len(xb)
+                count += n
+                tot_loss += loss_func(pred,yb).item()*n
+                tot_acc  += accuracy (pred,yb).item()*n
+        print(epoch, tot_loss/count, tot_acc/count)
+    return tot_loss/count, tot_acc/count
+```
+
+```{code-cell} ipython3
+model = nn.Sequential(nn.Linear(784, 50), nn.ReLU(), nn.Linear(50, 10))
+opt = optim.SGD(model.parameters(), lr=0.5)
+fit(10, model, F.cross_entropy, opt, train_dl, val_dl)
 ```
 
 ```{code-cell} ipython3
