@@ -5,3 +5,4 @@ huggingface-hub
 notebook
 jupytext
 seaborn
+datasets
