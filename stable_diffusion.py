@@ -6,7 +6,7 @@ from tqdm.auto import tqdm
 from torch import autocast
 from PIL import Image
 from torchvision import transforms as tfms
-
+import matplotlib.pyplot as plt
 
 # Supress some unnecessary warnings when loading the CLIPTextModel
 logging.set_verbosity_error()
@@ -48,7 +48,11 @@ class StableDiffusion:
     def embed_text(cls, text):
         max_length = cls.tokenizer.model_max_length
         text_input = cls.tokenizer(
-            text, padding="max_length", max_length=max_length, truncation=True, return_tensors="pt",
+            text,
+            padding="max_length",
+            max_length=max_length,
+            truncation=True,
+            return_tensors="pt",
         )
         with torch.no_grad():
             text_embeddings = cls.text_encoder(text_input.input_ids.to(cls.torch_device))[0]
@@ -139,7 +143,13 @@ class StableDiffusion:
 
     @classmethod
     def img_2_img(
-        cls, prompt, image, start_step=10, num_inference_steps=50, guidance_scale=8, seed=None,
+        cls,
+        prompt,
+        image,
+        start_step=10,
+        num_inference_steps=50,
+        guidance_scale=8,
+        seed=None,
     ):
 
         batch_size = 1  # only supported
@@ -173,6 +183,13 @@ class StableDiffusion:
                 tfms.ToTensor()(input_im).unsqueeze(0).to(cls.torch_device) * 2 - 1
             )  # Note scaling
         return 0.18215 * latent.latent_dist.sample()
+
+    @classmethod
+    def vis_latents(cls, latents):
+        # Let's visualize the four channels of this latent representation
+        fig, axs = plt.subplots(1, 4, figsize=(16, 4))
+        for c in range(4):
+            axs[c].imshow(latents[0][c].cpu(), cmap="Greys")
 
     @classmethod
     def latents_to_pil(cls, latents):
