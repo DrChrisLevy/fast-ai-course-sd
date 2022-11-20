@@ -135,7 +135,7 @@ next(iter(dl))
 next(iter(dl))['image'].shape
 ```
 
-Now with inplace with decorators 
+Now with inplace with decorators
 
 ```{code-cell} ipython3
 def _transfm(batch):
@@ -152,13 +152,93 @@ def inplace(f):
 ```
 
 ```{code-cell} ipython3
-transformi = inplace(_transfm)
+transformi = inplace(_transfm) # returns a function
 ```
 
 ```{code-cell} ipython3
 train.with_transform(transformi)[0]
 ```
 
-```{code-cell} ipython3
+Same thing can be done this decorator
 
+```{code-cell} ipython3
+@inplace
+def transformi(batch):
+    batch['image'] = [transforms.ToTensor()(o) for o in batch['image']]
 ```
+
+```{code-cell} ipython3
+tdsf = train.with_transform(transformi)
+r = tdsf[0]
+r
+```
+
+Note that HF returns a lot of dict objects. Many other
+platforms work with tuples instead. Here is a 
+nifty little function to convert to the tuple convention.
+
+```{code-cell} ipython3
+from operator import itemgetter
+```
+
+```{code-cell} ipython3
+d = dict(a=1,b=2,c=3)
+ig = itemgetter('a','c')
+ig(d)
+```
+
+```{code-cell} ipython3
+ig = itemgetter('image', 'labels')
+```
+
+```{code-cell} ipython3
+ig(r)
+```
+
+Does not have to just work with dicts.
+Works with any objects with `__getitem__`
+
+```{code-cell} ipython3
+class D:
+    def __getitem__(self, k):
+        return 1 if k=='a' else 2 if k=='b' else 3
+```
+
+```{code-cell} ipython3
+d = D()
+d[1], d[None], d['a'], d['b']
+```
+
+```{code-cell} ipython3
+ig = itemgetter('a', 'b', 'c')
+```
+
+```{code-cell} ipython3
+list(tdsf.features)
+```
+
+```{code-cell} ipython3
+from torch.utils.data import default_collate
+
+batch = dict(a=[1],b=[2]), dict(a=[3],b=[4])
+default_collate(batch)
+```
+
+```{code-cell} ipython3
+def collate_dict(ds):
+    get = itemgetter(*ds.features)
+    def _f(b): return get(default_collate(b))
+    return _f
+```
+
+```{code-cell} ipython3
+dlf = DataLoader(tdsf, batch_size=4, collate_fn=collate_dict(tdsf))
+next(iter(dlf)) # now returning tuple
+```
+
+```{code-cell} ipython3
+tdsf
+```
+
+## Plotting images
+[see the course notebook](https://github.com/fastai/course22p2/blob/master/nbs/05_datasets.ipynb)
