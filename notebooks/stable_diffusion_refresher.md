@@ -308,7 +308,7 @@ Instead of starting with a random noisy latent we can start with an actual image
 This is the Img2Img pipeline.
 
 ```python
-sd.img_2_img(['Donald Trump'], img, start_step=20, num_inference_steps=50, guidance_scale=3, seed=104853234)[0]
+sd.img_2_img(['Donald Trump'], img, start_step=20, num_inference_steps=50, guidance_scale=3, seed=None)[0]
 ```
 
 ```python
