@@ -26,13 +26,14 @@ of the main parts.
 ```python
 import torch
 from torchvision.transforms.functional import to_tensor, to_pil_image
-from stable_diffusion import StableDiffusion
+from stable_diffusion import *
 sd = StableDiffusion()
 ```
 
 ```python
-img = sd.text_to_img(prompt = ['portrait art of 8k ultra realistic retro futuristic Gandalf, lens flare, atmosphere, glow, detailed,intricate,blade runner, cybernetic, full of colour, cinematic lighting, trending on artstation, 4k, hyperrealistic, focused, extreme details,unreal engine 5, cinematic, masterpiece, art by ayami kojima, giger ']*2,
+img = sd.text_to_img(prompt = ['portrait art of 8k ultra realistic retro futuristic Gandalf, lens flare, atmosphere, glow, detailed,intricate,blade runner, cybernetic, full of colour, cinematic lighting, trending on artstation, 4k, hyperrealistic, focused, extreme details,unreal engine 5, cinematic, masterpiece, art by ayami kojima, giger '],
               num_inference_steps=50, guidance_scale=7, seed=104853234)[0]
+
 ```
 
 ```python
@@ -150,24 +151,164 @@ create an image. The trained UNET predicts the amount of noise to remove.
 Then the entire process of removing noise takes place over multiple steps
 and uses classifier free guidance with the CLIP text embeddings. 
 
-```python
 
+Lets start with an image and a little bit of noise and use the Unet to predict the amount of noise to remove.
+
+```python
+noisy_img = sd.latents_to_pil(sd.add_noise_to_latents(latents, num_inference_steps=50, sampling_step=47, seed=42)[0][None,:])[0]
 ```
 
 ```python
-
+noisy_img
 ```
 
 ```python
+latents_from_noisy = sd.pil_to_latent(noisy_img)
+```
 
+<!-- #region -->
+The Unet takes in the noisy latents and predicts the noise. We use a conditional model that also takes in the timestep `t` and our text embedding (aka encoder_hidden_states) as conditioning. Feeding all of these into the model looks like this:
+
+`noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]`
+
+The Unet requires the following inputs to predict the noise:
+
+- `latent_model_input`
+- `t` (which step in the scheduler process) 
+- text_embeddings
+
+
+Given a set of noisy latents, the model predicts the noise component. We can remove this noise from the noisy latents to see what the output image looks like (`latents_x0 = latents - sigma * noise_pred`). 
+<!-- #endregion -->
+
+```python
+_, text_embeddings = sd.embed_text("")
 ```
 
 ```python
-
+noise_pred = sd.unet(latents_from_noisy, 47, encoder_hidden_states=text_embeddings).sample
 ```
 
 ```python
+sd.latents_to_pil(latents_from_noisy - sd.scheduler.sigmas[47] * noise_pred)[0]
+```
 
+<!-- #region -->
+Above we did not use the classifier free guidance and the guidance scale parameter.
+
+
+By default, the model doesn't often do what we ask. If we want it to follow the prompt better, we use a hack called CFG. There's a good explanation in this video (AI coffee break GLIDE).
+
+`noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)`
+
+Also a note on sampling and scheduler:
+How exactly does the sampler go from the current noisy latents to a slightly less noisy version? Why don't we just use the model in a single step? Are there other ways to view this?
+
+The model tries to predict the noise in an image. For low noise values, we assume it does a pretty good job. For higher noise levels, it has a hard task! So instead of producing a perfect image, the results tend to look like a blurry mess. So, samplers use the model predictions to move a small amount towards the model prediction (removing some of the noise) and then get another prediction based on this marginally-less-rubbish input, and hope that this iteratively improves the result. Different samplers do this in different ways. 
+<!-- #endregion -->
+
+So here is what the diffusion loop looks like when we start with a text prompt.
+First we come up with the prompt and choose the inference steps, guidance scale and the seed:
+
+```python
+prompt = ['portrait art of 8k ultra realistic retro futuristic Gandalf, lens flare, atmosphere, glow, detailed,intricate,blade runner, cybernetic, full of colour, cinematic lighting, trending on artstation, 4k, hyperrealistic, focused, extreme details,unreal engine 5, cinematic, masterpiece, art by ayami kojima, giger']
+num_inference_steps=50
+guidance_scale=7.5
+seed=104853234
+```
+
+Compute the CLIP embeddings for the text prompt:
+
+```python
+_, text_embeddings = sd.embed_text(prompt)
+```
+
+```python
+text_embeddings.shape
+```
+
+We also compute the text embeddings for an empty string prompt.
+We concatenate these together so we can do one forward pass with the unet.
+
+```python
+batch_size = text_embeddings.shape[0] # 1
+_, uncond_embeddings = sd.embed_text([""] * batch_size)
+text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+text_embeddings.shape
+```
+
+Now we start with some noisy random latent:
+
+```python
+# start with noisy random latent
+latents = torch.zeros((batch_size, 4, sd.height // 8, sd.width // 8))
+sd.scheduler.set_timesteps(num_inference_steps)
+latents = sd.add_noise_to_latents(latents, num_inference_steps, 0, seed)
+latents.shape
+```
+
+```python
+sd.latents_to_pil(latents)[0]
+```
+
+```python
+# Loop
+all_latents = []
+all_noise_preds = []
+with autocast("cuda"):
+    for i, t in tqdm(enumerate(sd.scheduler.timesteps)):
+        # one X latent for the text prompt and one for the "" prompt
+        latent_model_input = torch.cat([latents] * 2) 
+        latent_model_input = sd.scheduler.scale_model_input(latent_model_input, t)
+
+        # predict the noise residual
+        with torch.no_grad():
+            noise_pred = sd.unet(
+                latent_model_input, t, encoder_hidden_states=text_embeddings
+            ).sample
+
+        # perform guidance
+        noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+
+        # compute the previous noisy sample x_t -> x_t-1
+        latents = sd.scheduler.step(noise_pred, t, latents).prev_sample
+        
+        all_latents.append(sd.latents_to_pil(latents)[0])
+        all_noise_preds.append(sd.latents_to_pil(noise_pred)[0])
+```
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+fig = plt.figure(figsize=(50, 50))
+columns = 5
+rows = 10
+for i in range(1,51):
+    imgg = all_latents[i-1]
+    fig.add_subplot(rows, columns, i)
+    plt.imshow(imgg)
+plt.show()
+```
+
+```python
+fig = plt.figure(figsize=(50, 50))
+columns = 5
+rows = 10
+for i in range(1,51):
+    imgg = all_noise_preds[i-1]
+    fig.add_subplot(rows, columns, i)
+    plt.imshow(imgg)
+plt.show()
+```
+
+Instead of starting with a random noisy latent we can start with an actual image.
+This is the Img2Img pipeline.
+
+```python
+sd.img_2_img(['Donald Trump'], img, start_step=20, num_inference_steps=50, guidance_scale=3, seed=104853234)[0]
 ```
 
 ```python
