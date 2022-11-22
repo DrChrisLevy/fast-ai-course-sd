@@ -310,11 +310,3 @@ This is the Img2Img pipeline.
 ```python
 sd.img_2_img(['Donald Trump'], img, start_step=30, num_inference_steps=50, guidance_scale=8, seed=42)[0]
 ```
-
-```python
-
-```
-
-```python
-
-```
