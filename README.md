@@ -31,6 +31,9 @@ git clone https://github.com/fastai/course22p2.git
 ## Build Docker Image
 ```
 docker build . -t fast-ai
+
+# Mac M1
+docker build . -f DockerfileMacM1  -t fast-ai-arm64
 ```
 
 ## Run Docker Container
@@ -39,6 +42,10 @@ docker build . -t fast-ai
 
 ```
 docker run -it -p 8888:8888 --gpus all -v $PWD:/workspace fast-ai /bin/bash
+
+# Mac M1, https://hub.docker.com/r/armswdev/pytorch-arm-neoverse
+docker run -it -p 8888:8888  -v $PWD:/workspace fast-ai-arm64 /bin/bash
+
 ```
 
 Now in the docker container:
@@ -48,5 +55,8 @@ huggingface-cli login
 ```
 
 ```
+pip install jupyter_contrib_nbextensions
+jupyter contrib nbextension install --user
+jupyter nbextension enable spellchecker/main
 jupyter notebook --port=8888 --no-browser --ip=0.0.0.0 --allow-root
 ```

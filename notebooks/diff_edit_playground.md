@@ -108,7 +108,6 @@ Image.fromarray((input_image*(1-MASK) + MASK*np.array(new_img)).astype('uint8'))
 
 ## Dog 2 Dog
 
-
 ```{code-cell} ipython3
 !curl --output input_image.jpg 'https://c8.alamy.com/zooms/9/838ca3778356412f868cc9e154a86049/2dkb0gp.jpg'
 ```
@@ -136,7 +135,6 @@ Image.fromarray((input_image*(1-MASK) + MASK*np.array(new_img)).astype('uint8'))
 ```
 
 ## Bird 2 Bird
-
 
 ```{code-cell} ipython3
 !curl --output input_image.jpg 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Snowy_Owl_%28240866707%29.jpeg'
