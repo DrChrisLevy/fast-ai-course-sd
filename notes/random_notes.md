@@ -191,4 +191,17 @@
 - practice some more training loops with optimizers
 - Jonathan Whitaker video [fun with optimization](https://youtu.be/rO5nmpniYkU) 
 	- [forum link](https://forums.fast.ai/t/fun-with-optimization/102045)
-	- 
+
+# 15 
+## 07_convolutions.ipynb
+
+- convolutions explained
+	- [link](https://medium.com/impactai/cnns-from-different-viewpoints-fab7f52d159c)
+- going through example of 3by3 edge detector kernel
+- talking about [img2col](img2col convolution) convolution algorithm which turns it into a Matrix Mult under the hood
+- [`F.unfold`](https://pytorch.org/docs/stable/generated/torch.nn.Unfold.html )
+- [F.conv2d](https://pytorch.org/docs/stable/generated/torch.nn.functional.conv2d.html)
+- strides and padding
+	- reduce dimensionality of input is super useful such as auto-encoder
+- Note there is this ideas of grouped convolutions and `groups` argument.
+	- In most applications Ive seen `groups=1`
