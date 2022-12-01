@@ -205,3 +205,12 @@
 	- reduce dimensionality of input is super useful such as auto-encoder
 - Note there is this ideas of grouped convolutions and `groups` argument.
 	- In most applications Ive seen `groups=1`
+
+## TODO
+- I wrote out some notes on convolutions once, would be nice to find them
+- Would be good to find a simple little problem to work on to practice
+	- dataset and dataloader again to refresh memory from lesson14
+	- simple conv network with some RGB images
+	- simple train loop
+	- all from scratch just to practice 
+- 
