@@ -241,5 +241,7 @@
 	- simple conv network with some RGB images
 	- simple train loop
 	- all from scratch just to practice 
+	- I think the classifier would be good on fashion mnist for example or any other small dataset from HF or whatever. To practice collate , ds, dl, train, eval, etc.
 - review some stuff from the 08_autoencoder notebook that was assumed remembered from last week
 	- go through from scratch 
+- go through the 09_learner notebook
