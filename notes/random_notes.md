@@ -206,6 +206,34 @@
 - Note there is this ideas of grouped convolutions and `groups` argument.
 	- In most applications Ive seen `groups=1`
 
+- half way point break
+
+## 08_autoencoder
+- need to review some things :) 
+- warm up classifier code on fashion mnist 
+- autoencoder
+	- stride 2 compressing in the first part
+	- TF Keras2 book had some good stuff on these convs for upsampling in autoencoder like networks
+	- nearest neighbour upsampling with stride 1 convolution --> double grids size
+	- a deconvolutional layer
+	- `padding=ks//2`
+- see new fit and eval
+- So Jeremy was trying to do an autoencoder on mnist
+	- not working to well
+	- good illustration basically
+	- code was training slow (cpu bottle necks etc)
+		- dataloader was slow
+	- Not fast enough to experiment on
+	- So the take away is **don't work like this**
+	- Have code that you can run hundreds of experiments on quickly.
+		- runs fast but can also iterate fast.
+	- This motivates the 09_learner notebook
+		- we need our own custom learner 
+		- got to stop doing things manually
+
+## 09_learner
+- start off at 1:35 in video.
+
 ## TODO
 - I wrote out some notes on convolutions once, would be nice to find them
 - Would be good to find a simple little problem to work on to practice
@@ -213,4 +241,5 @@
 	- simple conv network with some RGB images
 	- simple train loop
 	- all from scratch just to practice 
-- 
+- review some stuff from the 08_autoencoder notebook that was assumed remembered from last week
+	- go through from scratch 
