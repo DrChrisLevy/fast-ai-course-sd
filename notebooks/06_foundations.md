@@ -263,6 +263,217 @@ Some practical examples of decorators
 - retries
 and lots of other things.
 
-```{code-cell} ipython3
++++
 
+# Partial Functions
+Starting with a function with some parameters, and then
+set some of those parameters to constants and leave some of
+the parameters as args in the new partial function.
+
+```{code-cell} ipython3
+from functools import partial
+
+def add_abc(a,b,c):
+    return a + b + c
 ```
+
+```{code-cell} ipython3
+f = partial(add_abc,4,8) # goes from left to right so now a=4 and c=8
+```
+
+```{code-cell} ipython3
+f(0) # c=0 --> 4 + 8 + 0
+```
+
+```{code-cell} ipython3
+f(-12) #--> 4 + 8 + -12
+```
+
+Another example
+
+```{code-cell} ipython3
+def myf(a,b,c):
+    return 2 * a + b - c
+```
+
+```{code-cell} ipython3
+f = partial(myf, b=0,c=0)
+```
+
+```{code-cell} ipython3
+f(2)
+```
+
+# Callbacks
+
+```{code-cell} ipython3
+def show_calc(epochs, cb=None):
+    res = 0
+    for epoch in range(epochs):
+        time.sleep(1)
+        res += 1
+        if cb:
+            cb(epoch)
+    return res
+```
+
+```{code-cell} ipython3
+show_calc(4)
+```
+
+```{code-cell} ipython3
+def show_progress(epoch):
+    print(f'Finished epoch {epoch}')
+show_calc(4, show_progress) # show_progress function is the call back
+```
+
+```{code-cell} ipython3
+show_calc(4, lambda epoch: print(f'Finished epoch {epoch}'))
+```
+
+## Callbacks as Callable Classes
+
+```{code-cell} ipython3
+class ProgressShowingCallback():
+    def __init__(self, msg):
+        self.msg = msg
+        
+    def __call__(self, epoch):
+        print(f'{self.msg}. Finished epoch {epoch}')
+```
+
+```{code-cell} ipython3
+cb = ProgressShowingCallback('Random Message')
+```
+
+```{code-cell} ipython3
+show_calc(5, cb)
+```
+
+## Multiple Callbacks
+
+```{code-cell} ipython3
+def show_calc(epochs, cb=None):
+    res = 0
+    for epoch in range(epochs):
+        if cb:
+            cb.before_calc(epoch)
+        time.sleep(1)
+        res += 1
+        if cb:
+            cb.after_calc(epoch, res)
+    return res
+```
+
+```{code-cell} ipython3
+class PrintStepCallback:
+    def __init__(self):
+        pass
+    
+    def before_calc(self, epoch, **kwargs):
+        print(f'starting epoch {epoch}')
+        
+    def after_calc(self, epoch, res, **kwargs):
+        print(f'finishing epoch {epoch} and got {res}')
+```
+
+```{code-cell} ipython3
+show_calc(5, PrintStepCallback())
+```
+
+## Modify Behavior
+
+```{code-cell} ipython3
+def show_calc(epochs, cb=None):
+    res = 0
+    for epoch in range(epochs):
+        if cb and hasattr(cb, 'before_calc'):
+            cb.before_calc(epoch)
+        time.sleep(1)
+        res += 1
+        if cb and hasattr(cb, 'after_calc'):
+            if cb.after_calc(epoch, res):
+                print('early stopping')
+                break
+    return res
+
+class PrintAfterCallback:
+    def __init__(self):
+        pass
+    
+    def before_calc(self, epoch, **kwargs):
+        print(f'starting epoch {epoch}')
+        
+    def after_calc(self, epoch, res, **kwargs):
+        print(f'finishing epoch {epoch} and got {res}')
+        if res > 5:
+            return True
+```
+
+```{code-cell} ipython3
+show_calc(10, PrintAfterCallback())
+```
+
+Call backs can be functions, callable's classes, etc.
+There is a lot of flexibility through Python.
+
+```{code-cell} ipython3
+class SlowCalc:
+    def __init__(self, cb=None):
+        self.res = 0
+        self.cb = cb
+    
+    def callback(self, cb_name, *args, **kwargs):
+        if self.cb is None:
+            return
+        cb = getattr(self.cb, cb_name, None)
+        if cb:
+            return cb(*args, **kwargs)
+        
+    def calc(self, epochs):
+        for epoch in range(epochs):
+            self.callback('before_calc', self, epoch)
+            time.sleep(1)
+            self.res+=1
+            if self.callback('after_calc', self, epoch):
+                print('EARLY STOP')
+                break
+```
+
+```{code-cell} ipython3
+class ModifyingCallback:
+    def __init__(self):
+        pass
+    
+    def before_calc(self, calc, epoch):
+        print(f'doing epoch {epoch} and val is {calc.res}')
+        
+    def after_calc(self, calc, epoch):
+        print(f'finish epoch {epoch} and val is {calc.res}')
+        if calc.res <20:
+            calc.res = calc.res**2
+        if calc.res > 25:
+            return True
+```
+
+```{code-cell} ipython3
+SlowCalc(ModifyingCallback()).calc(10)
+```
+
+#  `__dunder__` thingies
+
++++
+
+Special methods you should probably know about (see data model link above) are:
+
+- `__getitem__`
+- `__getattr__`
+- `__setattr__`
+- `__del__`
+- `__init__`
+- `__new__`
+- `__enter__`
+- `__exit__`
+- `__len__`
+- `__repr__`
+- `__str__`
