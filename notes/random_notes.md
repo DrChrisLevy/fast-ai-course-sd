@@ -247,17 +247,33 @@
 ## TODO
 - I wrote out some notes on convolutions once, would be nice to find them
 - Would be good to find a simple little problem to work on to practice
-	- dataset and dataloader again to refresh memory from lesson14
-	- simple conv network with some RGB images
-	- simple train loop
-	- all from scratch just to practice 
-	- I think the classifier would be good on fashion mnist for example or any other small dataset from HF or whatever. To practice collate , ds, dl, train, eval, etc.
+    - dataset and dataloader again to refresh memory from lesson14
+    - simple conv network with some RGB images
+    - simple train loop
+    - all from scratch just to practice 
+    - I think the classifier would be good on fashion mnist for example or any other small dataset from HF or whatever. To practice collate , ds, dl, train, eval, etc.
 - review some stuff from the 08_autoencoder notebook that was assumed remembered from last week
-	- go through from scratch 
+    - go through from scratch 
 - go through the 09_learner notebook
-	- learn more python! callbacks, decorators, etc.
-	- build something simple with some of these ideas
-		- partials
-		- __getattr__
-		- callbacks
-		- decorators 
+    - learn more python! callbacks, decorators, etc.
+    - build something simple with some of these ideas
+        - partials
+        - __getattr__
+        - callbacks
+        - decorators 
+
+# 16
+
+## 09_learner
+- seems like he redid this so lets start over this notebook from scratch
+- almost first half of this lesson was going through all this stuff and callbacks
+- go through this carefully
+- learning rate finder
+
+## TODO
+- go over the 09 lesson notebook
+  - do lots of it from scratch
+- watch second half of video
+  - go through that notebook
+- can we get the warmup conv classifier I was doing last lesson to work?
+  - Can we get the auto encoder to work that I never started
