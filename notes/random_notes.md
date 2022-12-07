@@ -191,4 +191,73 @@
 - practice some more training loops with optimizers
 - Jonathan Whitaker video [fun with optimization](https://youtu.be/rO5nmpniYkU) 
 	- [forum link](https://forums.fast.ai/t/fun-with-optimization/102045)
-	- 
+
+# 15 
+## 07_convolutions.ipynb
+
+- convolutions explained
+	- [link](https://medium.com/impactai/cnns-from-different-viewpoints-fab7f52d159c)
+- going through example of 3by3 edge detector kernel
+- talking about [img2col](img2col convolution) convolution algorithm which turns it into a Matrix Mult under the hood
+- [`F.unfold`](https://pytorch.org/docs/stable/generated/torch.nn.Unfold.html )
+- [F.conv2d](https://pytorch.org/docs/stable/generated/torch.nn.functional.conv2d.html)
+- strides and padding
+	- reduce dimensionality of input is super useful such as auto-encoder
+- Note there is this ideas of grouped convolutions and `groups` argument.
+	- In most applications Ive seen `groups=1`
+
+- half way point break
+
+## 08_autoencoder
+- need to review some things :) 
+- warm up classifier code on fashion mnist 
+- autoencoder
+	- stride 2 compressing in the first part
+	- TF Keras2 book had some good stuff on these convs for upsampling in autoencoder like networks
+	- nearest neighbour upsampling with stride 1 convolution --> double grids size
+	- a deconvolutional layer
+	- `padding=ks//2`
+- see new fit and eval
+- So Jeremy was trying to do an autoencoder on mnist
+	- not working to well
+	- good illustration basically
+	- code was training slow (cpu bottle necks etc)
+		- dataloader was slow
+	- Not fast enough to experiment on
+	- So the take away is **don't work like this**
+	- Have code that you can run hundreds of experiments on quickly.
+		- runs fast but can also iterate fast.
+	- This motivates the 09_learner notebook
+		- we need our own custom learner 
+		- got to stop doing things manually
+
+## 09_learner
+- start off at 1:35 in video.
+- going through the learner class
+	- the first one is only good for classification
+	- not flexible enough for our purposes
+- metric class (base metric class)
+- `@property` is nice.
+- now onto new learner with callbacks :) 
+	- `with_cbs`
+- lots of nifty python going on here
+	- like back to that 06foundations stuff
+- I def need to practice the call backs and decorators etc.
+
+## TODO
+- I wrote out some notes on convolutions once, would be nice to find them
+- Would be good to find a simple little problem to work on to practice
+	- dataset and dataloader again to refresh memory from lesson14
+	- simple conv network with some RGB images
+	- simple train loop
+	- all from scratch just to practice 
+	- I think the classifier would be good on fashion mnist for example or any other small dataset from HF or whatever. To practice collate , ds, dl, train, eval, etc.
+- review some stuff from the 08_autoencoder notebook that was assumed remembered from last week
+	- go through from scratch 
+- go through the 09_learner notebook
+	- learn more python! callbacks, decorators, etc.
+	- build something simple with some of these ideas
+		- partials
+		- __getattr__
+		- callbacks
+		- decorators 
