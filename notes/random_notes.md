@@ -233,6 +233,16 @@
 
 ## 09_learner
 - start off at 1:35 in video.
+- going through the learner class
+	- the first one is only good for classification
+	- not flexible enough for our purposes
+- metric class (base metric class)
+- `@property` is nice.
+- now onto new learner with callbacks :) 
+	- `with_cbs`
+- lots of nifty python going on here
+	- like back to that 06foundations stuff
+- I def need to practice the call backs and decorators etc.
 
 ## TODO
 - I wrote out some notes on convolutions once, would be nice to find them
@@ -245,3 +255,9 @@
 - review some stuff from the 08_autoencoder notebook that was assumed remembered from last week
 	- go through from scratch 
 - go through the 09_learner notebook
+	- learn more python! callbacks, decorators, etc.
+	- build something simple with some of these ideas
+		- partials
+		- __getattr__
+		- callbacks
+		- decorators 
