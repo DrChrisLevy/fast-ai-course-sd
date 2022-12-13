@@ -247,17 +247,58 @@
 ## TODO
 - I wrote out some notes on convolutions once, would be nice to find them
 - Would be good to find a simple little problem to work on to practice
-	- dataset and dataloader again to refresh memory from lesson14
-	- simple conv network with some RGB images
-	- simple train loop
-	- all from scratch just to practice 
-	- I think the classifier would be good on fashion mnist for example or any other small dataset from HF or whatever. To practice collate , ds, dl, train, eval, etc.
+    - dataset and dataloader again to refresh memory from lesson14
+    - simple conv network with some RGB images
+    - simple train loop
+    - all from scratch just to practice 
+    - I think the classifier would be good on fashion mnist for example or any other small dataset from HF or whatever. To practice collate , ds, dl, train, eval, etc.
 - review some stuff from the 08_autoencoder notebook that was assumed remembered from last week
-	- go through from scratch 
+    - go through from scratch 
 - go through the 09_learner notebook
-	- learn more python! callbacks, decorators, etc.
-	- build something simple with some of these ideas
-		- partials
-		- __getattr__
-		- callbacks
-		- decorators 
+    - learn more python! callbacks, decorators, etc.
+    - build something simple with some of these ideas
+        - partials
+        - __getattr__
+        - callbacks
+        - decorators 
+
+# 16
+
+## 09_learner
+- seems like he redid this so lets start over this notebook from scratch
+- almost first half of this lesson was going through all this stuff and callbacks
+- go through this carefully
+- learning rate finder
+
+## 10_activations
+- the higher the learn rate, often can find more generalizable set of weights 
+	- and training with less batches less likely to overfit
+	- stable training
+- Looking Inside the Model with Hooks
+- plotting activations (means and std)
+	- want the mean of activations close to 0 and std close to 1. Basically want a nice spread. 
+		- Not all zero
+		- Classic shape of bad behaviour 
+	- want mean around 0 and variance around 1 for the activations to be training properly
+- All about looking inside the models to debug them. 
+- In the first example he used a Sequential Model and hardcoded in the collection of stats manually but we dont have to do things manually. We can use pytorch **hooks**
+- forward hooks and backward hooks. Can add them to models / layers.
+	- a forward hook calls a function during the forward pass etc.
+	- `m.register_forward_hook`
+	- do they have hooks in TF?
+- hooks and callbacks are the same thing but pytorch calls them hooks. Particular kind of callback.
+- __del__ and self.remove() to delete hook after done to free up memory
+- these callbacks and hooks are really cool but need to practice 
+- context manager hooks class
+	- review those context managers, __enter__, __exit__, etc. `with`
+- histograms with the single columns of pixels and log values
+- 
+
+## TODO
+- go over the 09 lesson notebook
+  - do lots of it from scratch
+	  - update: only have the time to do a lot of copy/paste and running code right now.
+		  - There is lots of nice ideas to come back to here.
+- 
+- can we get the warmup conv classifier I was doing last lesson to work?
+  - Can we get the auto encoder to work that I never started
