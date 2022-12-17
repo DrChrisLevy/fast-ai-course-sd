@@ -302,3 +302,82 @@
 - 
 - can we get the warmup conv classifier I was doing last lesson to work?
   - Can we get the auto encoder to work that I never started
+
+# 17
+- some changes to learner, callbacks, and hooks
+	- go over those notebooks again
+
+## 11_initialization notebook
+- fashion mnist with simple conv
+- the activation stats is showing those spike and things are not going well during training
+- clean ipython hist utility function
+	- also a utility function about cleaning tracebacks
+	- these are all about clearing out cuda memory etc when training in notebooks
+- why do we need 0 mean and 1 standard deviation on those activation stats?
+- have to scale the weight matrices just right
+- [paper about this](https://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf), Xavier Glorot, Yoshua Bengio
+	- because of this work we now have a way to initialize nn weights 
+- variance is sensitive to outliers because of the square term
+	- going over basic mean and std
+- covariance - how much 2 things vary .Maybe go over that.
+- pearson correlation coeff
+- Xavier weight initialization 
+- but doesnt work wirth relu activation
+	- matirx mult and relu means variance and mean go down
+- Kaiming came up with a modified approach, [paper](https://arxiv.org/abs/1502.01852)
+	- 	- `init.kaiming_normal_(m.weight)`
+- its quite nice, now the lr finder started working 
+- but still not training the greatest. Still not working. We forgot something critical
+	- the weight matrices are correctly normalized now with the Kaiming method 
+	- but not the input!. So need to modify the input so the inputs have mean 0 and variance 1. Can do with a callback that works on each batch actually.
+	- and now its training even better with this change
+	- stats color dim now looking more rectangular 
+	- pretty cool!
+- despite normalizing the weights and the inputs, we still not have a mean of 0 and a var of 1. The problem was we are putting the data through a Relu. Relu removes all neg so its impossible for the output of Relu to have a mean of 0. Jeremy think's its incompatible . Came up with idea of taking result of Relu and subtracting something from it. Pull the whole thing down so there are some negatives. And also, while we there use a Leaky Relu.
+- General Relu
+	- need to make an adjustment when using kaiming_normal with Leak Relu. `a` argument
+	- and training even better!
+- Now a days, much more complicated activations. Not just relu and leaky relu etc.
+	- Need to initialize weights correctly to keep the mean 0 and var 1. Jeremy says many people dont do this part correctly.
+	- [paper: all you need is a good init](https://arxiv.org/abs/1511.06422)
+		- general way of initializing neural network weights that works for any activation
+			- LSUV - layer-wise Sequential Unit Variance (LSUV)
+			- iterative approach. batches, for each layer, bias-mean and weight/std. See notebook/paper for details
+		- used a hook. Did not do any weight initialization. Just used LSUV.
+- Batch Normalization
+	-  very similar in idea to LSUV
+	- [2015 paper super famous](https://arxiv.org/abs/1502.03167)
+	- we are normalizing the layers weights distributions  but the layers inputs **change** during training. Can fix this issue by normalizing inputs during training
+	- [layer normalization paper came out year later](https://arxiv.org/abs/1607.06450) and is actually a bit simpler. Start with that.
+		- start with this b/c its a simpler technique
+		- see simple LayerNorm class in the notebook
+		- OH interesting, `x*self.mult + self.add` where `self.mult` and `self.add` start off as 1 and 0 but they are parameters! They are learned during training! Very cool idea.
+		- See the forward pass for the details.
+		- added layer normalization to each layer except the first one
+		- but these layer normalizations can cause some challenges.
+			- first batch norm created complexities
+			- trend in recent years to not rely so heavily on normalization layers
+			- not a silver bullet
+	- Now lets look at Batch Norm
+		- got the mult and add like before. But now not just one. There is now one for every channel. more learnable params. 
+		- but also another difference. See the update_stats method.
+			- get the mean per filter and then use lerp. exponentially weighted moving average
+			- only updated during training
+			- during inference BN layers are frozen
+		- remember that BN makes things tricker when doing transfer learning
+	- See the nice image diagram from the [group norm paper](https://arxiv.org/pdf/1803.08494.pdf) which shows the batch norm, later norm, instance norm, group norm
+- towards 90%
+	- lower batch size to see more samples. Ha very subtle. lower batch size take longer but sees more of the data
+	- Momentum learner, fine tune with a smaller lr for final epochs
+- and that is the end of initialization, an incredibly important topic
+
+## 12_accel_sgd
+- 
+
+
+
+## TODO
+- go over those learner callbacks hooks notebooks more carefully and understand it all. I fell behind on those.
+- covariance , pearson correlation coeff
+	- go over in code and math, 
+- 
