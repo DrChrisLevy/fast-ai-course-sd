@@ -372,7 +372,11 @@
 - and that is the end of initialization, an incredibly important topic
 
 ## 12_accel_sgd
-- 
+- weight decay
+- l2 regularization
+- momentum
+- RMSprop
+- Adam (RMSprop + Momentum)
 
 
 
