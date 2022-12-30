@@ -438,4 +438,19 @@
 	- train for 20 epochs and its basically starting to memorize the training data
 	- Need more regularization
 - With batchnorm, weight decay does not really regularize. Lets Look at Data Augmentation.
-- 
+- data aug not typically done on eval set 
+- batch transform call back
+- random crop with padding
+- Data aug happening on the GPU.
+- Got to 93.8%
+	- emphasize: using all the standard tricks 
+- Test Time Augmentation (TTA)
+- Random Erase
+	- delete a little bit of each pic and replace with some noise
+	- but replace with noise that has the same stats (mean and std of the image). Because we don't want to change the stats of the image.
+	- then does a way (clamp) as not to change the range of the pixel values
+- Random Copy
+	- same idea. random copy part of image to another.
+- Keep seeing the idea of testing line by line in the repl and then after making a function. I feel like I already do this a lot in ipython shell.
+- ensemble - trained 2 models and took the average
+- HW - try doing your own scheduler, try and beat on MNIST Fashion 5, 10, 20 epochs. Ideally with MiniAI.
