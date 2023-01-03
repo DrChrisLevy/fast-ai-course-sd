@@ -384,4 +384,88 @@
 - go over those learner callbacks hooks notebooks more carefully and understand it all. I fell behind on those.
 - covariance , pearson correlation coeff
 	- go over in code and math, 
-- 
+
+
+# 18 
+## 12_accel_sgd
+- learning rate scheduler
+- 1 cycle training
+	- [paper](https://arxiv.org/abs/1803.09820)
+	- See the plot of learning rate and momentum over time
+- Fixup initialization 
+	- [paper](https://arxiv.org/abs/1901.09321)
+- T-Fixup
+	- [link](https://paperswithcode.com/method/t-fixup)
+- Basically there all all these tricks for initializing models
+
+- Back after the break
+	- Notice the difference with the `learn` being passed to the callback
+	- Oh cool Github Trick, put `/compare` at the end of the PR view URL. So replace `/pulls` with `/compare` to quickly see changes.
+	- `@fc.patch` to add a new method to a class. For example `lr_find`
+
+## 13_resnet
+- in general, more depth and more layers gives the network more ability to learn
+	- in our example made it deeper/wider and got better accuracy
+- But there comes a point/time where adding more layers becomes a problem
+	- See this [paper](https://arxiv.org/abs/1512.03385)
+	- Even became worse on the training. The 56 layer was worse than the 20 layer. This team came up with a really important insight. 
+	- They added something called shortcut connections 
+	- Instead of being `out=conv2(conv1(in))` lets do `out=conv2(conv1(in)) + in`
+		- This is the idea of the skip connection
+	- A network that is deep but at the beginning of training it behaves like a shallower network. The `residual` is `out-in` so it's called as **ResnetBlock**
+	- Only works if you can add those things `conv2(conv1(in))` and `in` together.
+		- The answer is to add a `conv` on `in` and to make it as simple as possible. The simplest most possible conv is a 1by1 kernal size.
+	- See code (`_conv_block`) function.
+	- I think all these details are explained really well in François Chollet 
+- So now stacking the resnet blocks together
+	- notice the new utility functions for printing model shape and summary
+	- from 91.7 to 92.2 acc
+	- Simplest possible Resnet block
+- Also tried the `timm` library (not much better results)
+	- goes to show that thoughtful design and architecture goes a long way
+	- All about using common sense. Encouraging.
+
+## 14_augment
+- data augmentation
+- But before we discuss data augmentation
+	- some improvements to the model
+	- Made it a bit wider
+	- change the kernel window size 
+	- replace the awkward flatten with the more usable global average pooling
+	- Improve the model summary mflops - basic idea counting number of multiplications
+	- played around with some different architectures 
+	- lowered the total number of params and flops and kept the same accuracy. A good take away is to always look to make the models smaller and faster (less compute).
+	- train for 20 epochs and its basically starting to memorize the training data
+	- Need more regularization
+- With batchnorm, weight decay does not really regularize. Lets Look at Data Augmentation.
+- data aug not typically done on eval set 
+- batch transform call back
+- random crop with padding
+- Data aug happening on the GPU.
+- Got to 93.8%
+	- emphasize: using all the standard tricks 
+- Test Time Augmentation (TTA)
+- Random Erase
+	- delete a little bit of each pic and replace with some noise
+	- but replace with noise that has the same stats (mean and std of the image). Because we don't want to change the stats of the image.
+	- then does a way (clamp) as not to change the range of the pixel values
+- Random Copy
+	- same idea. random copy part of image to another.
+- Keep seeing the idea of testing line by line in the repl and then after making a function. I feel like I already do this a lot in ipython shell.
+- ensemble - trained 2 models and took the average
+- HW - try doing your own scheduler, try and beat on MNIST Fashion 5, 10, 20 epochs. Ideally with MiniAI.
+
+# 19
+- todo lesson 19 notes
+
+
+# TODO Catch Up
+- Some recent notes to guide me in catching up with some stuff from lesson 16 onward
+- go through 09_learner notebook and learner class and callbacks. Play with this so you understand
+it completely. 
+- in lesson 16 hooks context manager
+  - activations visuals
+- lesson 17
+  - go over all that
+- lesson 18
+  - go over all that

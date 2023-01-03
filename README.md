@@ -55,6 +55,12 @@ huggingface-cli login
 ```
 
 ```
+#install MiniAI Library
+cd course22p2/
+pip install -e .
+```
+
+```
 pip install jupyter_contrib_nbextensions
 jupyter contrib nbextension install --user
 jupyter nbextension enable spellchecker/main
