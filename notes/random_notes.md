@@ -454,3 +454,18 @@
 - Keep seeing the idea of testing line by line in the repl and then after making a function. I feel like I already do this a lot in ipython shell.
 - ensemble - trained 2 models and took the average
 - HW - try doing your own scheduler, try and beat on MNIST Fashion 5, 10, 20 epochs. Ideally with MiniAI.
+
+# 19
+- todo lesson 19 notes
+
+
+# TODO Catch Up
+- Some recent notes to guide me in catching up with some stuff from lesson 16 onward
+- go through 09_learner notebook and learner class and callbacks. Play with this so you understand
+it completely. 
+- in lesson 16 hooks context manager
+  - activations visuals
+- lesson 17
+  - go over all that
+- lesson 18
+  - go over all that
