@@ -360,7 +360,7 @@ learn.model
 next(learn.model.parameters()).is_cuda
 ```
 
-The model is not on the GPU. 
+The model is not on the GPU.
 
 ```{code-cell} ipython3
 for xx,yy in dls.train: # we already used the name x and y above duh!
@@ -392,30 +392,32 @@ learn = Learner(get_model(), dls, F.cross_entropy, lr=0.2, cbs=[SingleBatchCB(),
 learn.fit(5)
 ```
 
--------- START HERE ----------
-
-+++
-
 ## Metrics
 
 ```{code-cell} ipython3
 class Metric:
-    def __init__(self): self.reset()
-    def reset(self): self.vals,self.ns = [],[]
+    def __init__(self):
+        self.reset()
+    def reset(self):
+        self.vals,self.ns = [],[]
+        
     def add(self, inp, targ=None, n=1):
         self.last = self.calc(inp, targ)
         self.vals.append(self.last)
         self.ns.append(n)
+    
     @property
     def value(self):
         ns = tensor(self.ns)
         return (tensor(self.vals)*ns).sum()/ns.sum()
+    
     def calc(self, inps, targs): return inps
 ```
 
 ```{code-cell} ipython3
 class Accuracy(Metric):
-    def calc(self, inps, targs): return (inps==targs).float().mean()
+    def calc(self, inps, targs):
+        return (inps==targs).float().mean()
 ```
 
 ```{code-cell} ipython3
@@ -502,8 +504,12 @@ class DeviceCB(Callback):
 model = get_model()
 metrics = MetricsCB(accuracy=MulticlassAccuracy())
 learn = Learner(model, dls, F.cross_entropy, lr=0.2, cbs=[DeviceCB(), metrics])
-learn.fit(1)
+learn.fit(10)
 ```
+
+The above is using some of GPU but not much! It says like 1% GPU usage.
+
++++
 
 ## Flexible learner
 
@@ -561,6 +567,9 @@ class Learner():
     def training(self): return self.model.training
 ```
 
+Interesting so `('predict','get_loss','backward','step','zero_grad')` functions are implemented as callbacks.
+I guess for flexibility. See `__getattr__` above. 
+
 ```{code-cell} ipython3
 #|export
 class TrainCB(Callback):
@@ -604,10 +613,17 @@ model = get_model()
 metrics = MetricsCB(accuracy=MulticlassAccuracy())
 cbs = [TrainCB(), DeviceCB(), metrics, ProgressCB(plot=True)]
 learn = Learner(model, dls, F.cross_entropy, lr=0.2, cbs=cbs)
-learn.fit(1)
+learn.fit(3)
 ```
 
 ## TrainLearner and MomentumLearner
+
++++
+
+I guess here we made a design decision change. Note that we are not
+using `Callback` here anymore. We are subclassing  `Learner` class
+and not passing `learn` to all the methods now. So now the learning
+is not done through a call back but actually by subclassing the Learner class.
 
 ```{code-cell} ipython3
 #|export
@@ -631,12 +647,14 @@ class MomentumLearner(TrainLearner):
             for p in self.model.parameters(): p.grad *= self.mom
 ```
 
+This is why we dont use the train call back below.
+
 ```{code-cell} ipython3
 # NB: No TrainCB
 metrics = MetricsCB(accuracy=MulticlassAccuracy())
 cbs = [DeviceCB(), metrics, ProgressCB(plot=True)]
 learn = MomentumLearner(get_model(), dls, F.cross_entropy, lr=0.2, cbs=cbs)
-learn.fit(1)
+learn.fit(5)
 ```
 
 ## LRFinderCB
@@ -663,7 +681,7 @@ class LRFinderCB(Callback):
 lrfind = LRFinderCB()
 cbs = [DeviceCB(), lrfind]
 learn = MomentumLearner(get_model(), dls, F.cross_entropy, lr=1e-4, cbs=cbs)
-learn.fit(1)
+learn.fit(4)
 plt.plot(lrfind.lrs, lrfind.losses)
 plt.xscale('log')
 ```
