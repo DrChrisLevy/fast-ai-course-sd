@@ -276,10 +276,13 @@
 	- stable training
 - Looking Inside the Model with Hooks
 - plotting activations (means and std)
-	- want the mean of activations close to 0 and std close to 1. Basically want a nice spread. 
-		- Not all zero
-		- Classic shape of bad behaviour 
-	- want mean around 0 and variance around 1 for the activations to be training properly
+    - want the mean of activations close to 0 and std close to 1. Basically want a nice spread. 
+        - Not all zero
+        - Classic shape of bad behaviour 
+    - want mean around 0 and variance around 1 for the activations to be training properly
+    - To be clear, the activations here are the output of `layer(X)` for each layer. For each
+          forward pass we can append the value of `layer(X)`for each batch call and take the mean/stf
+  		  and append to a list. So each layer has its own list of means/stds.
 - All about looking inside the models to debug them. 
 - In the first example he used a Sequential Model and hardcoded in the collection of stats manually but we dont have to do things manually. We can use pytorch **hooks**
 - forward hooks and backward hooks. Can add them to models / layers.
@@ -457,15 +460,3 @@
 
 # 19
 - todo lesson 19 notes
-
-
-# TODO Catch Up
-- Some recent notes to guide me in catching up with some stuff from lesson 16 onward
-- go through 09_learner notebook and learner class and callbacks. Play with this so you understand
-it completely. 
-- in lesson 16 hooks context manager
-  - activations visuals
-- lesson 17
-  - go over all that
-- lesson 18
-  - go over all that
