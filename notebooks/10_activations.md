@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.14.1
+    jupytext_version: 1.14.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -15,17 +15,6 @@ kernelspec:
 
 ```{code-cell} ipython3
 #| default_exp activations
-```
-
-```{code-cell} ipython3
-import os
-os.chdir('/workspace')
-```
-
-```{code-cell} ipython3
-os.chdir('course22p2/')
-os.system('pip install -e .')
-os.chdir('/workspace')
 ```
 
 # Activation stats
@@ -38,6 +27,7 @@ import fastcore.all as fc
 from pathlib import Path
 from operator import attrgetter,itemgetter
 from functools import partial
+from contextlib import contextmanager
 
 from torch import tensor,nn,optim
 import torch.nn.functional as F
@@ -60,8 +50,8 @@ logging.disable(logging.WARNING)
 
 ```{code-cell} ipython3
 #|export
-def set_seed(seed):
-    torch.use_deterministic_algorithms(True)
+def set_seed(seed, deterministic=False):
+    torch.use_deterministic_algorithms(deterministic)
     torch.manual_seed(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -122,16 +112,17 @@ set_seed(1)
 learn = fit(nn.Sequential(*cnn_layers()))
 ```
 
-Not training good. We need to look inside our model.
-Thats where the ideas of hooks come from.
-
-+++
-
 ## Hooks
 
 +++
 
 ### Manual insertion
+
+First we create a torch model with manual insertion of a hook, to show the idea.
+The activation mean/std are taken from the output of each layer. Not the actual 
+weights of the layers. The actual output `l(x)`. These are stored for each layer
+and each layer has its own list of values stored from each forward pass. The mean
+is across the values in the tensor.
 
 ```{code-cell} ipython3
 class SequentialModel(nn.Module):
@@ -167,11 +158,15 @@ for l in model.act_stds: plt.plot(l)
 plt.legend(range(5));
 ```
 
+We want the mean and std of the activations close to 0 and 1 respectively.
+
++++
+
 ### Pytorch hooks
 
 +++
 
-Hooks are PyTorch object you can add to any nn.Module. A hook will be called when a layer, it is registered to, is executed during the forward pass (forward hook) or the backward pass (backward hook). Hooks don't require us to rewrite the model.
+Hooks are PyTorch object you can add to any nn.Module. A hook will be called when a layer, it is registered to, is executed during the forward pass (forward hook) or the backward pass (backward hook). **Hooks don't require us to rewrite the model**.
 
 ```{code-cell} ipython3
 set_seed(1)
@@ -191,8 +186,13 @@ def append_stats(i, mod, inp, outp):
     act_stds [i].append(to_cpu(outp).std())
 ```
 
+For each layer we register its own function/hook.
+This function is a partial created from  `append_stats`
+where the inputs are `mod, inp, outp`.
+
 ```{code-cell} ipython3
-for i,m in enumerate(model): m.register_forward_hook(partial(append_stats, i))
+for i,l in enumerate(model):
+    l.register_forward_hook(partial(append_stats, i))
 ```
 
 ```{code-cell} ipython3
@@ -213,7 +213,8 @@ We can refactor this in a Hook class. It's very important to remove the hooks wh
 ```{code-cell} ipython3
 #| export
 class Hook():
-    def __init__(self, m, f): self.hook = m.register_forward_hook(partial(f, self))
+    def __init__(self, m, f):
+        self.hook = m.register_forward_hook(partial(f, self))
     def remove(self): self.hook.remove()
     def __del__(self): self.remove()
 ```
@@ -253,12 +254,15 @@ class DummyCtxMgr:
     def __enter__(self, *args):
         print("let's go!")
         return self
-    def __exit__ (self, *args): print("all done!")
-    def hello(self): print("hello.")
+    def __exit__ (self, *args):
+        print("all done!")
+    def hello(self):
+        print("hello.")
 ```
 
 ```{code-cell} ipython3
-with DummyCtxMgr() as dcm: dcm.hello()
+with DummyCtxMgr() as dcm:
+    dcm.hello()
 ```
 
 ```{code-cell} ipython3
@@ -311,18 +315,19 @@ with Hooks(model, append_stats) as hooks:
 ```{code-cell} ipython3
 #| export
 class HooksCallback(Callback):
-    def __init__(self, hookfunc, mod_filter=fc.noop):
+    def __init__(self, hookfunc, mod_filter=fc.noop, on_train=True, on_valid=False, mods=None):
         fc.store_attr()
         super().__init__()
     
-    def before_fit(self):
-        mods = fc.filter_ex(self.learn.model.modules(), self.mod_filter)
-        self.hooks = Hooks(mods, self._hookfunc)
+    def before_fit(self, learn):
+        if self.mods: mods=self.mods
+        else: mods = fc.filter_ex(learn.model.modules(), self.mod_filter)
+        self.hooks = Hooks(mods, partial(self._hookfunc, learn))
 
-    def _hookfunc(self, *args, **kwargs):
-        if self.learn.model.training: self.hookfunc(*args, **kwargs)
+    def _hookfunc(self, learn, *args, **kwargs):
+        if (self.on_train and learn.training) or (self.on_valid and not learn.training): self.hookfunc(*args, **kwargs)
 
-    def after_fit(self): self.hooks.remove()
+    def after_fit(self, learn): self.hooks.remove()
     def __iter__(self): return iter(self.hooks)
     def __len__(self): return len(self.hooks)
 ```
@@ -366,7 +371,8 @@ fit(model, xtra_cbs=[hc]);
 ```{code-cell} ipython3
 #| export
 # Thanks to @ste for initial version of histgram plotting code
-def get_hist(h): return torch.stack(h.stats[2]).t().float().log1p()
+def get_hist(h):
+    return torch.stack(h.stats[2]).t().float().log1p()
 ```
 
 ```{code-cell} ipython3
