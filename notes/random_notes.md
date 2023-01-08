@@ -460,13 +460,3 @@
 
 # 19
 - todo lesson 19 notes
-
-
-# TODO Catch Up
-- Some recent notes to guide me in catching up with some stuff from lesson 16 onward
-- in lesson 16 hooks context manager
-  - activations visuals
-- lesson 17
-  - go over all that
-- lesson 18
-  - go over all that
