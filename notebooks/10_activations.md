@@ -449,7 +449,3 @@ astats.plot_stats()
 ```{code-cell} ipython3
 import nbdev; nbdev.nbdev_export()
 ```
-
-```{code-cell} ipython3
-
-```
