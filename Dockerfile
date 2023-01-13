@@ -1,4 +1,5 @@
 FROM pytorch/pytorch
+# tensorflow/tensorflow:latest-gpu
 WORKDIR /workspace
 
 RUN apt-get update && apt-get install -y \
