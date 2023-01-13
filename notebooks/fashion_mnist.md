@@ -97,6 +97,56 @@ tf.math.reduce_std(x)
 ```
 
 ```{code-cell} ipython3
+set(y.numpy())
+```
+
+```{code-cell} ipython3
+from tensorflow import keras
+from tensorflow.keras import layers
+```
+
+```{code-cell} ipython3
+input_shape = (28, 28, 1)
+num_classes = 10
+model = keras.Sequential(
+    [
+        keras.Input(shape=input_shape),
+        layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
+        layers.MaxPooling2D(pool_size=(2, 2)),
+        layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
+        layers.MaxPooling2D(pool_size=(2, 2)),
+        layers.Flatten(),
+        layers.Dropout(0.5),
+        layers.Dense(num_classes, activation="softmax"),
+    ]
+)
+
+model.summary()
+```
+
+```{code-cell} ipython3
+model.compile(
+    loss="sparse_categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
+)
+```
+
+```{code-cell} ipython3
+model.fit(ds_train, validation_data=ds_test, epochs=10)
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
 
 ```
 
