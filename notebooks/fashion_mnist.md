@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.14.4
+    jupytext_version: 1.11.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -13,8 +13,8 @@ kernelspec:
 ---
 
 ```{code-cell} ipython3
-!pip install Pillow
-!pip install nb_black
+# !pip install Pillow
+# !pip install nb_black
 ```
 
 ```{code-cell} ipython3
@@ -23,6 +23,10 @@ kernelspec:
 
 ```{code-cell} ipython3
 import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+import numpy as np
+import matplotlib.pyplot as plt
 
 tf.test.is_gpu_available()
 ```
@@ -83,52 +87,109 @@ tf.test.is_gpu_available()
 ```
 
 ```{code-cell} ipython3
-from tensorflow import keras
-from tensorflow.keras import layers
-
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.fashion_mnist.load_data()
 assert x_train.shape == (60000, 28, 28)
 assert x_test.shape == (10000, 28, 28)
 assert y_train.shape == (60000,)
 assert y_test.shape == (10000,)
-```
 
-```{code-cell} ipython3
-
-x_train = x_train / 255.
+x_train = x_train / 255.0
 x_train = (x_train - 0.2860405969887956) / 0.3530242445149226
 
-x_test = x_test / 255.
+x_test = x_test / 255.0
 x_test = (x_test - 0.2860405969887956) / 0.3530242445149226
-
 ```
 
 ```{code-cell} ipython3
-input_shape = (28, 28, 1)
-num_classes = 10
-model = keras.Sequential(
-    [
-        keras.Input(shape=input_shape),
-        layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
-        layers.MaxPooling2D(pool_size=(2, 2)),
-        layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
-        layers.MaxPooling2D(pool_size=(2, 2)),
-        layers.Conv2D(128, kernel_size=(3, 3), activation="relu"),
-        layers.MaxPooling2D(pool_size=(2, 2)),
-        layers.Flatten(),
-        layers.Dropout(0.5),
-        layers.Dense(num_classes, activation="softmax"),
-    ]
-)
-model.summary()
-opt = keras.optimizers.Adam(learning_rate=3e-3, weight_decay=0.3)
-model.compile(
-    loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+def get_model(learning_rate):
+    input_shape = (28, 28, 1)
+    num_classes = 10
+    model = keras.Sequential(
+        [
+            keras.Input(shape=input_shape),
+            layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
+            layers.MaxPooling2D(pool_size=(2, 2)),
+            layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
+            layers.MaxPooling2D(pool_size=(2, 2)),
+            layers.Conv2D(128, kernel_size=(3, 3), activation="relu"),
+            layers.MaxPooling2D(pool_size=(2, 2)),
+            layers.Flatten(),
+            layers.Dropout(0.5),
+            layers.Dense(num_classes, activation="softmax"),
+        ]
+    )
+
+    # model.summary()
+    opt = keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(
+        loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+    )
+    return model
+```
+
+```{code-cell} ipython3
+class LRFinderCallback(keras.callbacks.Callback):
+    def __init__(self, lr_factor=1.1, max_lr=1e-1):
+        super().__init__()
+        self.factor = lr_factor
+        self.lrs = []
+        self.losses = []
+        self.max_lr = max_lr
+
+    def get_lr(self):
+        return float(keras.backend.get_value(self.model.optimizer.learning_rate))
+
+    def set_lr(self, lr):
+        keras.backend.set_value(self.model.optimizer.lr, lr)
+
+    def on_train_batch_end(self, batch, logs=None):
+        lr = self.get_lr()
+        self.lrs.append(lr)
+        self.losses.append(logs["loss"])
+
+        if lr > self.max_lr:
+            self.model.stop_training = True
+            plt.plot(np.log10(self.lrs), self.losses)
+
+        self.set_lr(lr * self.factor)
+```
+
+```{code-cell} ipython3
+model = get_model(1e-6)
+lr_finder = LRFinderCallback(1.1, 1e-1)
+```
+
+```{code-cell} ipython3
+model.fit(
+    x_train,
+    y_train,
+    validation_data=(x_test, y_test),
+    batch_size=128,
+    epochs=2,
+    callbacks=[lr_finder],
+    verbose=1,
 )
 ```
 
 ```{code-cell} ipython3
+model = get_model(1e-2)
 model.fit(x_train, y_train, validation_data=(x_test, y_test), batch_size=128, epochs=5)
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3
