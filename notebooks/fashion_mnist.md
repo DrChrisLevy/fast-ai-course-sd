@@ -208,7 +208,7 @@ class LRFinderCallback(keras.callbacks.Callback):
 
 ```{code-cell} ipython3
 model = get_model(1e-6)
-lr_finder = LRFinderCallback(1.1, 1e-2)
+lr_finder = LRFinderCallback(1.1, 1e-1/2)
 model.fit(
     x_train,
     y_train,
@@ -221,7 +221,7 @@ model.fit(
 ```
 
 ```{code-cell} ipython3
-model = get_model(1e-3)
+model = get_model(3e-3)
 model.fit(
     x_train,
     y_train,
