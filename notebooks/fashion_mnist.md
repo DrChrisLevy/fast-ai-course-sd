@@ -104,27 +104,79 @@ x_test = (x_test - 0.2860405969887956) / 0.3530242445149226
 def get_model(learning_rate):
     input_shape = (28, 28, 1)
     num_classes = 10
-    model = keras.Sequential(
-        [
-            keras.Input(shape=input_shape),
-            layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
-            layers.MaxPooling2D(pool_size=(2, 2)),
-            layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
-            layers.MaxPooling2D(pool_size=(2, 2)),
-            layers.Conv2D(128, kernel_size=(3, 3), activation="relu"),
-            layers.MaxPooling2D(pool_size=(2, 2)),
-            layers.Flatten(),
-            layers.Dropout(0.5),
-            layers.Dense(num_classes, activation="softmax"),
-        ]
-    )
-
-    # model.summary()
+    inputs = keras.Input(shape=input_shape)
+    x = layers.Conv2D(32, kernel_size=3, activation="relu")(inputs)
+    x = layers.MaxPooling2D(pool_size=2)(x)
+    x = layers.Conv2D(64, kernel_size=3, activation="relu")(x)
+    x = layers.MaxPooling2D(pool_size=2)(x)
+    x = layers.Conv2D(128, kernel_size=3, activation="relu")(x)
+    x = layers.Flatten()(x)
+    x = layers.Dropout(0.2)(x)
+    outputs = layers.Dense(num_classes, activation="softmax")(x)
+    model = keras.Model(inputs=inputs, outputs=outputs)
     opt = keras.optimizers.Adam(learning_rate=learning_rate)
     model.compile(
         loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
     )
     return model
+
+
+def get_model(learning_rate):
+    input_shape = (28, 28, 1)
+    num_classes = 10
+    model = keras.Sequential(
+        [
+            keras.Input(shape=input_shape),
+            layers.Conv2D(32, kernel_size=3, activation="relu", padding = "same", strides=2),
+            layers.Conv2D(64, kernel_size=3, activation="relu", padding = "same", strides=2),
+            layers.Conv2D(128, kernel_size=3, activation="relu", padding = "same", strides=2),
+            layers.Flatten(),
+            layers.Dropout(0.2),
+            layers.Dense(num_classes, activation="softmax"),
+        ]
+    )
+
+    opt = keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(
+        loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+    )
+    return model
+
+
+  
+def residual_block(x, filters, pooling=False):
+    residual = x
+    x = layers.Conv2D(filters, 3, activation="relu", padding="same")(x)
+    x = layers.Conv2D(filters, 3, activation="relu", padding="same")(x)
+    if pooling:
+        x = layers.MaxPooling2D(2, padding="same")(x)
+        residual = layers.Conv2D(filters, 1, strides=2)(residual)
+    elif filters != residual.shape[-1]:
+        residual = layers.Conv2D(filters, 1)(residual)
+    x = layers.add([x, residual])
+    return x
+
+def get_model(learning_rate):
+    input_shape = (28, 28, 1)
+    num_classes = 10
+    inputs = keras.Input(shape=input_shape)
+    x = residual_block(inputs, filters=32, pooling=True)
+    x = residual_block(x, filters=64, pooling=True)
+    x = residual_block(x, filters=128, pooling=False)
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dropout(0.2)(x)
+    outputs = layers.Dense(num_classes, activation="softmax")(x)
+    model = keras.Model(inputs=inputs, outputs=outputs)
+    opt = keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(
+        loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+    )
+    return model
+```
+
+```{code-cell} ipython3
+model = get_model(3e-4)
+model.summary()
 ```
 
 ```{code-cell} ipython3
@@ -156,48 +208,28 @@ class LRFinderCallback(keras.callbacks.Callback):
 
 ```{code-cell} ipython3
 model = get_model(1e-6)
-lr_finder = LRFinderCallback(1.1, 1e-1)
-```
-
-```{code-cell} ipython3
+lr_finder = LRFinderCallback(1.1, 1e-2)
 model.fit(
     x_train,
     y_train,
     validation_data=(x_test, y_test),
     batch_size=128,
-    epochs=2,
+    epochs=5,
     callbacks=[lr_finder],
     verbose=1,
 )
 ```
 
 ```{code-cell} ipython3
-model = get_model(1e-2)
-model.fit(x_train, y_train, validation_data=(x_test, y_test), batch_size=128, epochs=5)
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-
+model = get_model(1e-3)
+model.fit(
+    x_train,
+    y_train,
+    validation_data=(x_test, y_test),
+    batch_size=128,
+    epochs=5,
+    verbose=1,
+)
 ```
 
 ```{code-cell} ipython3
