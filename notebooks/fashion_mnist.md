@@ -127,9 +127,15 @@ def get_model(learning_rate):
     model = keras.Sequential(
         [
             keras.Input(shape=input_shape),
-            layers.Conv2D(32, kernel_size=3, activation="relu", padding = "same", strides=2),
-            layers.Conv2D(64, kernel_size=3, activation="relu", padding = "same", strides=2),
-            layers.Conv2D(128, kernel_size=3, activation="relu", padding = "same", strides=2),
+            layers.Conv2D(
+                32, kernel_size=3, activation="relu", padding="same", strides=2
+            ),
+            layers.Conv2D(
+                64, kernel_size=3, activation="relu", padding="same", strides=2
+            ),
+            layers.Conv2D(
+                128, kernel_size=3, activation="relu", padding="same", strides=2
+            ),
             layers.Flatten(),
             layers.Dropout(0.2),
             layers.Dense(num_classes, activation="softmax"),
@@ -143,11 +149,17 @@ def get_model(learning_rate):
     return model
 
 
-  
 def residual_block(x, filters, pooling=False):
     residual = x
-    x = layers.Conv2D(filters, 3, activation="relu", padding="same")(x)
-    x = layers.Conv2D(filters, 3, activation="relu", padding="same")(x)
+
+    x = layers.Conv2D(filters, 3, use_bias=False, padding="same")(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+
+    x = layers.Conv2D(filters, 3, use_bias=False, padding="same")(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+
     if pooling:
         x = layers.MaxPooling2D(2, padding="same")(x)
         residual = layers.Conv2D(filters, 1, strides=2)(residual)
@@ -155,6 +167,7 @@ def residual_block(x, filters, pooling=False):
         residual = layers.Conv2D(filters, 1)(residual)
     x = layers.add([x, residual])
     return x
+
 
 def get_model(learning_rate):
     input_shape = (28, 28, 1)
@@ -208,7 +221,7 @@ class LRFinderCallback(keras.callbacks.Callback):
 
 ```{code-cell} ipython3
 model = get_model(1e-6)
-lr_finder = LRFinderCallback(1.1, 1e-1/2)
+lr_finder = LRFinderCallback(1.1, 1e-1)
 model.fit(
     x_train,
     y_train,
@@ -233,15 +246,16 @@ model.fit(
 ```
 
 ```{code-cell} ipython3
-
+model.layers[0](x)
 ```
 
 ```{code-cell} ipython3
-
+x = x_train[0:32]
+x.shape
 ```
 
 ```{code-cell} ipython3
-
+x
 ```
 
 ```{code-cell} ipython3
