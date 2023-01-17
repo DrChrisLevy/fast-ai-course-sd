@@ -101,7 +101,7 @@ x_test = (x_test - 0.2860405969887956) / 0.3530242445149226
 ```
 
 ```{code-cell} ipython3
-def get_model(learning_rate):
+def get_model1(learning_rate):
     input_shape = (28, 28, 1)
     num_classes = 10
     inputs = keras.Input(shape=input_shape)
@@ -121,7 +121,7 @@ def get_model(learning_rate):
     return model
 
 
-def get_model(learning_rate):
+def get_model2(learning_rate):
     input_shape = (28, 28, 1)
     num_classes = 10
     model = keras.Sequential(
@@ -169,13 +169,49 @@ def residual_block(x, filters, pooling=False):
     return x
 
 
-def get_model(learning_rate):
+def get_model3(learning_rate):
     input_shape = (28, 28, 1)
     num_classes = 10
     inputs = keras.Input(shape=input_shape)
     x = residual_block(inputs, filters=32, pooling=True)
     x = residual_block(x, filters=64, pooling=True)
     x = residual_block(x, filters=128, pooling=False)
+    x = layers.Flatten()(x)
+    x = layers.Dropout(0.2)(x)
+    outputs = layers.Dense(num_classes, activation="softmax")(x)
+    model = keras.Model(inputs=inputs, outputs=outputs)
+    opt = keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(
+        loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+    )
+    return model
+
+
+def get_model4(learning_rate):
+    input_shape = (28, 28, 1)
+    num_classes = 10
+    inputs = keras.Input(shape=input_shape)
+
+    x = layers.Conv2D(filters=32, kernel_size=3, use_bias=False)(inputs)
+
+    for size in [32, 64, 128]:
+        residual = x
+
+        x = layers.BatchNormalization()(x)
+        x = layers.Activation("relu")(x)
+        x = layers.Conv2D(size, 3, padding="same", use_bias=False)(x)
+
+        x = layers.BatchNormalization()(x)
+        x = layers.Activation("relu")(x)
+        x = layers.Conv2D(size, 3, padding="same", use_bias=False)(x)
+
+        x = layers.MaxPooling2D(3, strides=2, padding="same")(x)
+
+        residual = layers.Conv2D(size, 1, strides=2, padding="same", use_bias=False)(
+            residual
+        )
+        x = layers.add([x, residual])
+
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dropout(0.2)(x)
     outputs = layers.Dense(num_classes, activation="softmax")(x)
@@ -185,11 +221,42 @@ def get_model(learning_rate):
         loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
     )
     return model
-```
 
-```{code-cell} ipython3
-model = get_model(3e-4)
-model.summary()
+
+def get_model5(learning_rate):
+    input_shape = (28, 28, 1)
+    num_classes = 10
+    inputs = keras.Input(shape=input_shape)
+
+    x = layers.Conv2D(filters=32, kernel_size=3, use_bias=False)(inputs)
+
+    for size in [32, 64, 128]:
+        residual = x
+
+        x = layers.BatchNormalization()(x)
+        x = layers.Activation("relu")(x)
+        x = layers.SeparableConv2D(size, 3, padding="same", use_bias=False)(x)
+
+        x = layers.BatchNormalization()(x)
+        x = layers.Activation("relu")(x)
+        x = layers.SeparableConv2D(size, 3, padding="same", use_bias=False)(x)
+
+        x = layers.MaxPooling2D(3, strides=2, padding="same")(x)
+
+        residual = layers.Conv2D(size, 1, strides=2, padding="same", use_bias=False)(
+            residual
+        )
+        x = layers.add([x, residual])
+
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dropout(0.2)(x)
+    outputs = layers.Dense(num_classes, activation="softmax")(x)
+    model = keras.Model(inputs=inputs, outputs=outputs)
+    opt = keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(
+        loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+    )
+    return model
 ```
 
 ```{code-cell} ipython3
@@ -220,7 +287,7 @@ class LRFinderCallback(keras.callbacks.Callback):
 ```
 
 ```{code-cell} ipython3
-model = get_model(1e-6)
+model = get_model3(1e-6)
 lr_finder = LRFinderCallback(1.1, 1e-1)
 model.fit(
     x_train,
@@ -234,7 +301,7 @@ model.fit(
 ```
 
 ```{code-cell} ipython3
-model = get_model(3e-3)
+model = get_model3(3e-3)
 model.fit(
     x_train,
     y_train,
