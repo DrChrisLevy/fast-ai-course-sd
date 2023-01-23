@@ -491,7 +491,7 @@ want to copy the exact spatial layout of the target image. We just want the "sty
   - see StyleLossToTarget so learning to match the gram matrix of the features
 
 
-## 16B_
+## 16B_NCA.ipynb
 
 ## TODO
 - try the hooks feature extractor i.e. Homework: Can you do this using hooks 
