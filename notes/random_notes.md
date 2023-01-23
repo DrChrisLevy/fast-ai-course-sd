@@ -486,7 +486,13 @@ a unit test example.
 is very spatially similar to the target image. But when we say we want a "style" we don't really
 want to copy the exact spatial layout of the target image. We just want the "style"
 - This is where the **Style Loss with Gram Matrix* comes into play
-  - 55 min mark
+  - [see this older paper](https://arxiv.org/pdf/1508.06576.pdf)
+  - [Gram Matrix][https://en.wikipedia.org/wiki/Gram_matrix]
+  - see StyleLossToTarget so learning to match the gram matrix of the features
+
+
+## 16B_
 
 ## TODO
 - try the hooks feature extractor i.e. Homework: Can you do this using hooks 
+- learn more about the gram matrix and how we could use it
