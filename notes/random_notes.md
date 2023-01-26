@@ -492,6 +492,10 @@ want to copy the exact spatial layout of the target image. We just want the "sty
 
 
 ## 16B_NCA.ipynb
+- [paper](https://distill.pub/2020/growing-ca/)
+- [self organizing textures](https://distill.pub/selforg/2021/textures/)
+- neural cellular automata
+- gradient normalization is a cool trick
 
 ## TODO
 - try the hooks feature extractor i.e. Homework: Can you do this using hooks 
