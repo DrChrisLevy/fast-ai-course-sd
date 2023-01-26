@@ -460,3 +460,43 @@
 
 # 19
 - todo lesson 19 notes
+- Introduced DDPM paper and code
+
+# 20
+- Jeremy starting with how to do mixed precision
+- talking about [Hugging Face Accelerate](https://huggingface.co/docs/accelerate/index)
+- Then onto 6A_StyleTransfer By [Jono](https://twitter.com/johnowhitaker)
+
+## 6A_StyleTransfer
+- starting with example of random noisy image and training a simple model with MSE loss
+with the target being the image of the lady with the sunglasses. And we can train the
+model to take the noisy image and output the lady with the sunglasses model. This is more like
+a unit test example.
+- Now at the 35 minute mark or so and talking about VGG feature extractor
+  - reminder of [feature visualization](https://distill.pub/2017/feature-visualization/)
+- cool idea here
+  - take a noisy random image and a target image.
+  - extract some features by feeding both noisy input and target image through feature extractor.
+  You choose here which layers to use. The layers you pick has an effect on the final outcome.
+  - Train the model with MSE loss and use the features extracted in the loss. So you are training
+  the input image to have extracted features similar to those of the target. The idea is that
+  you will not get an exact replica of the target image in the end like we did with the unit
+  test example.
+- Now notice that it is still using spatial features. Meaning the thing we get after training
+is very spatially similar to the target image. But when we say we want a "style" we don't really
+want to copy the exact spatial layout of the target image. We just want the "style"
+- This is where the **Style Loss with Gram Matrix* comes into play
+  - [see this older paper](https://arxiv.org/pdf/1508.06576.pdf)
+  - [Gram Matrix][https://en.wikipedia.org/wiki/Gram_matrix]
+  - see StyleLossToTarget so learning to match the gram matrix of the features
+
+
+## 16B_NCA.ipynb
+- [paper](https://distill.pub/2020/growing-ca/)
+- [self organizing textures](https://distill.pub/selforg/2021/textures/)
+- neural cellular automata
+- gradient normalization is a cool trick
+
+## TODO
+- try the hooks feature extractor i.e. Homework: Can you do this using hooks 
+- learn more about the gram matrix and how we could use it
