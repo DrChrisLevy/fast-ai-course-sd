@@ -500,3 +500,69 @@ want to copy the exact spatial layout of the target image. We just want the "sty
 ## TODO
 - try the hooks feature extractor i.e. Homework: Can you do this using hooks 
 - learn more about the gram matrix and how we could use it
+
+# 21
+- started with Jono looking at an example with [cifar](https://huggingface.co/datasets/cifar10) dataset
+- start learning and playing with [weights and biases](https://wandb.ai/home)
+- when training starts to take like 10 minutes, 1 hour, etc. then worthwhile setting up some
+infra to do experiments 
+- Jeremy does make a good counterpoint though about not going "crazy" and running hundreds of
+experiments. He makes the point of making strong hypothesis, refactoring code, and making
+changes that way is his preferred approach.
+
+## 18_fid.ipynb
+- Jeremy talking about research they have been doing
+  - is there a metric for how good a generated image is?
+  - FID metric in this [notebook](https://github.com/fastai/course22p2/blob/master/nbs/18_fid.ipynb)
+  - Rather than directly comparing images pixel by pixel (for example, as done by the L2 norm), 
+  - the FID compares the mean and standard deviation of the deepest layer in Inception v3. These layers are closer to output nodes that correspond to real-world objects such as a specific breed of dog or an airplane, and further from the shallow layers near the input image. As a result, they tend to mimic human perception of similarity in images
+  - Talking about the GlobalAvgPool feature extractor and taking the mean over a batch
+  - metric across a bunch of images
+  - taking the pre-trained mnist model from notebook 14
+    - note the difference in scaling between -1 and 1 (common in diffusion models) as the
+    - expected input
+  - now take the generated images from DDPM notebook model we trained 
+    - note bug where the output was between 0 and 1
+    - now pass the generated models from the generative DDPM model and pass them through
+    the trained classifier but then extract the embeddings 512 before the linear layer
+      - shows several ways of doing this
+  - so we get the features form the generated DDPM images and also from a bunch of real fashion
+      images
+  - The Frechet Inception Distance score, or FID for short, is a metric that calculates 
+    the distance between feature vectors calculated for real and generated images
+    - [wiki](https://en.wikipedia.org/wiki/Fr%C3%A9chet_inception_distance)
+  - taking the mean of all the embeddings is not enough!
+  - we need to use the covariance matrix. So we get a 512by512 matrix for the covariance matrix
+of the **real** images and another matrix for the **generated** images.
+  - Looking for means to be similar and the covariance matrices to be similar. Goes into FID
+  score.
+  - some caveats of FID is:
+    - depends on number of sample points.
+    - When using inception network comparision (common in papers) resizing to 299by299 
+    does not always make sense (think small images upscaled or large generated down scaled)
+- Another metric that is less biased is KID (Kernel Inception Distance)
+  - see [here](https://machine-learning-note.readthedocs.io/en/latest/generative_models/metrics.html)
+  - It has a very high variance though. Jeremy has not found it useful.
+- So we don't actually have an awesome metric. But sticking with FID for now and wrapped
+it up in a class.
+
+- now Jeremy talking about the BUG again of having things between 0 and 1 but everyone else
+scales the inputs between -1 and 1. And he fixed the bug and things got worse. So he spent
+3 days going through everything from scratch. All the notebook cells etc. Then came up the
+interesting question: Why does everyone scale the inputs between -1 and 1?
+- we know having centered data between -1 and 1 is good.
+- instead of going from 0 to 1 then try -0.5 to 0.5
+  - FID was dramatically better
+  - built up a deep intuition of how things were working
+- so playing with the input scaling
+- started playing with different schedulers for DDPM, betamax, alpha_bar, etc.
+- started looking at DDIM
+- DDIM paper 
+- Code for DDIM
+- using the scheduler from diffusers library and swapping in DDPM or DDIM. 
+- DDIM is faster and actually simpler to implement. 
+- Jeremy shows some different examples and simulations for different schedules and parameters and the resulting FID score and images.  
+
+## TODO
+- learn that DDPM and DDIM stuff.
+- Get comfortable with all the code.
