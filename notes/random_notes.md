@@ -566,3 +566,64 @@ interesting question: Why does everyone scale the inputs between -1 and 1?
 ## TODO
 - learn that DDPM and DDIM stuff.
 - Get comfortable with all the code.
+
+# 22
+
+## 22_cosine.ipynb
+- talking about DDIM again. diffusion schedulers. The noisfy function is changing a little.
+Talking about using a cosine schedule. Changing the process to a more continuous time value
+between 0 and 1. As opposed to discrete timesteps. The model, callbacks, fitting process are the 
+same still. Sampling now uses linspace. Getting a FID of 3 with 100 steps and seems like a good
+sampling approach.
+- Dont have to be bound to 1000 time steps like original DDIM paper. Can reframe from 0 to 1
+for example. Simpler notations over time is better as people understand the problem better.
+
+
+## 22_noise-pred.ipynb
+- Jeremy talking about some new recent research by his team
+- create a model to predict T given the noised image. Can the model actually figure out
+the amount of noise instead of passing a T like we usually do.
+- model to predict alpha_bar_t. Predict noise amount.
+- remember to always have a baseline model!
+- doing a regression problem here in this research.
+- Same old ResBlock Conv model. The output is now different (single number regression model).
+  - Learner uses MSE as loss.
+  - predicting alpha_bar_t
+- Hypothesis was correct. We can predict the thing we were manually plugging in as input.
+Would be simpler if we did not have to pass the T each time.
+- So now try a "No Time" model. Now nosify does not return T anymore. We dont know it.
+The Unet does not have T so just passes 0.
+- Copy pasted the cosine notebook and ran this new thing.
+- Turned out pretty Garbage with FID of 22. 
+  - Dont give up!
+- Try something else. 
+  - use estimated alpha bar t median for batch clamped not to be too far away
+  - FID 3.88
+- These no T approached could pass the T approaches. He only spent couple days on this. Early days.
+- Cool to highlight the research process.
+
+## On the importance of Noise Scheduling for Diffusion Models
+- The other research area. Remember the bug from -1 to 1 and switching to -0.5 to 0.5.
+    How do we normalize? Etc..
+- Found a recent paper that shed some light on this. 
+- [On the importance of Noise Scheduling for Diffusion Models](https://arxiv.org/abs/2301.10972#:~:text=There%20are%20three%20findings%3A%20(1,scaling%20the%20input%20data%20by)
+  - A really nice paper.
+  - the same noise level for different size/resolution images can be very different
+  - signal to noise ratio. Different schedules for noise schedules. Linear/Cosine/Sigmoid etc.
+  - there is no one true best schedule 
+  - schedule and how to scale/normalize image
+
+## 23_karras
+- [Elucidating the Design Space of Diffusion-Based Generative Models](https://arxiv.org/pdf/2206.00364.pdf)
+- karras one of the authors
+- maybe predicting the noise is sometimes a bad idea
+- predicting the noise or predicting a clear image. One can be better in diff scenarios.
+- predict a lerped version of the noise and clear image based on how much noise. See equation
+in notebook.
+- its a more general thing here called the V objective. Stable diffusion 2.0 and other new models
+are using this.
+- Mean 0 and variance 1 really important for the input data and activations. Keeps coming up. 
+- just going through the notebook and paper
+- Euler Sampler --> FID 1.98
+- sample Heun
+
