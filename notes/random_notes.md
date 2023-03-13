@@ -627,3 +627,71 @@ are using this.
 - Euler Sampler --> FID 1.98
 - sample Heun
 
+# 23
+
+## 24_imgnet_tiny
+- working with tiny imgnet dataset, 200 categories
+- create dataset which gives the path of the image file and the name of the category that its in
+- read img 3 channels, divide by 255, then normalize by subtracting mean and dividing by std
+- the usual stuff by going through it manually to practice (setting up Dataset and data loader)
+- 64by64 px and very easy to overfit. Found data augmentation was required.
+  - Padding, random crop, random flip, random erase
+  - put them data augs together with a nn.sequential (could have used torch transpose)
+- used basic convnet with some resnet blocks
+  - took a while to get to this point
+  - 60%
+- going deeper
+  - resblocks 
+  - got up to 62%
+- more augmentation
+  - [TrivialAugment](https://arxiv.org/pdf/2103.10158.pdf)
+  - not as well known but it should be :) 
+  - actually built into pytorch
+- pre-activation resnets
+  - [see here for example](https://towardsdatascience.com/resnet-with-identity-mapping-over-1000-layers-reached-image-classification-bb50a42af03e)
+  - 65%
+  - 67.5% on 200 epochs
+
+## 25_superes
+
+- super resolution (not classification)
+- trying to go from 32by32 to 64by64 
+- also added rand_erase on training to the model can learn a little more about filling
+missing parts
+- img in and img out for this model
+- going to use the UNET
+- start with "dumb" denoising autoencoder
+  - F.mse_loss
+  - output predicted images look pretty terrible
+  - sort of like earlier auto encoder
+  - really challenging
+  - small data, simple model
+  - Maybe it would be possible with much more data and fancier model etc.
+  - but no reason for us to do that here
+  - note that Stable Diffusion has the Latent Diffusion modle which trained an encoder/decoder
+  that does an amazing job
+  - But instead of getting all complicated we can try a UNET
+- UNET (1 hour mark video)
+  - [original paper](https://arxiv.org/pdf/1505.04597.pdf)
+  - a UNET is actually used in Stable Diffusion to Predict the Noise
+    - Remember Stable Diffusion as the latent encoder, the CLIP model, and the UNET.
+  - The trick is the copy/crop over the activations from the downsampling path and concatenating
+  with activations from the upsampling path. Half are from upsampling and half are from downsampling.
+  - See the typical diagram that looks like a U with the arrows going across.
+  - can even use adding instead of concat. Sort of like a boosting method.
+  - `nn.ModuleList`
+  - in the forward pass need to keep track of activations in order to copy/paste over
+  - See the code. It's actually pretty easy to define. Super cool idea!
+- Perceptual Loss
+  - what was that about again?
+  - getting the extracted features (256, 8, 8)
+  - using for the perceptual loss
+- then a trick with using a pre-trained model and unfreezing
+  - take UNET
+  - self.start =  actual weights of pre-trained model and for downsampling
+  - `load_state_dict` and `state_dict`
+  - turn off requires_grad
+  - the classic fine tune approach
+  - intermediate layer activations
+  - its like cheating, but okay to do that here in this case!
+
