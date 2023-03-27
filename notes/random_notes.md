@@ -712,3 +712,56 @@ missing parts
 - All this the context of images though and not sequences from NLP
 - Eionops library
 - last 5 minutes is the conditional version
+
+# 25
+- final lesson
+- next course going to be on NLP
+
+## Simple Diffusion Audio
+- Jono doing this part of the lesson
+- audio clips of birds
+- 30000 values/sec audio data
+  - too big to work with and sound waves have high frequency components
+  - do the usual mel spectogram trick and turn the audio 
+  - I have done this before with Whisper and stuff I did at work
+  - this is really cool: https://musiclab.chromeexperiments.com/Spectrogram/
+  - turns huge waveform into 128 by 128 1 chanel image
+  - using mel class to do this stuff
+  - lossy conversion of the sound
+- adding random noise to these generated images, using SimpleDiffusion Class, UNET, transformers block
+  - from the last lesson. Go over this stuff again, pretty cool!
+  - SimpleDiffusion only came out about a couple months ago
+- Diffusion to generate new log mel spectograms diffusion, diffusion on spectograms
+  - https://www.riffusion.com/
+  - pretty cool stuff!
+
+## 29 VAE Notebook
+- 256,256,3 channel to 32,32,4 in the latent space.
+- going back to first building a simple auto encoder (remember we did this way back)
+  - this time around much better then previous attempt 
+  - but cant generate good looking or new images from random noise
+- now the VAE
+  - `mu,lv`
+  - normally distributed numbers
+  - generate encode is now a little random
+  - binary cross entropy loss with logits
+    - train it a certain way then will just behave like the original auto encoder. 
+    - Not what we want
+  - so how do we get it to create a log variance that does not go to 0?
+    - by using the kld loss Kullback–Leibler divergence
+    - so the space around a point should map back to that point
+      - any point within the range should go back
+      - get a nicer latent space
+    - mapping to single vector compression
+  - now the Stable Diffusion VAE
+  
+## Notebook 30 Bedroom Dataset
+- LSUN https://www.yf.io/p/lsun
+  - Jeremy put smaller subset on aws s3 
+- absolutely remarkable that we can recover back the original image when we decode
+  - it's hard to really tell the difference
+- also had a perceptual loss
+- memory mapped numpy file for using disk for storing stuff in memory (.npmm) - little trick
+- generating some bedroom pics using the VAE from diffusions library and then the model we 
+wrote from scratch for training
+- also did 31 notebook
