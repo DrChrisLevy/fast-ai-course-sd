@@ -695,3 +695,20 @@ missing parts
   - intermediate layer activations
   - its like cheating, but okay to do that here in this case!
 
+# 24
+- 26,27,28 notebooks
+- I have bad notes for this lesson because was taking on my iphone
+- lots of good UNET torch code here so good to back over and understand
+- Good to come back to see how Attention works in the context of images
+- UNET unconditional 
+- Embedding ResBlock. Time embeddings. Sinusoidal embeddings. 
+- Timestep embeddings 
+- [U-Net model for Denoising Diffusion Probabilistic Models (DDPM)](https://nn.labml.ai/diffusion/ddpm/unet.html)
+- Swish activation 
+- Non attention stable diffusion unet. Our very first one from scratch. 
+- Now looking at attention.
+- AttentionBlock explanation and from scratch. 
+- Self attention multihead 
+- All this the context of images though and not sequences from NLP
+- Eionops library
+- last 5 minutes is the conditional version
